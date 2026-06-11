@@ -415,7 +415,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
     if (manualTrigger) triggerMeetingRef.current = false
 
     if (!meeting.active && (manualTrigger || t % 1200 === 0)) {
-      const theo = chars.find(c => c.name === 'Theo') ?? chars[0]
+      const theo = chars.find(c => c.name === 'Theo' && c.isOnline) ?? (manualTrigger ? chars.find(c => c.name === 'Theo') : null)
       if (theo) {
         const others = chars.filter(c => c.id !== theo.id && c.isOnline && c.state === 'at_desk')
         if (others.length >= 0) {
@@ -434,7 +434,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
             c.state = 'going_to_meeting'
             c.seatIndex = i % CONF_SEATS.length
             c.tx = CONF_ENTRY.x - 10
-            c.ty = CONF_ENTRY.floorY - 2
+            c.ty = c.deskY  // stay on their own floor while walking right
             c.stateTimer = 999
             if (c.lastAction && Math.random() < 0.5) {
               c.bubble = '📅 Heading to meeting...'
@@ -507,7 +507,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       // Move
       const dx = c.tx - c.x, dy = c.ty - c.y
       const dist = Math.sqrt(dx * dx + dy * dy)
-      const speed = c.isOnline ? 1.3 : 0
+      const speed = (c.isOnline || c.state === 'going_to_meeting') ? 1.3 : 0
       if (dist > 2 && speed > 0) {
         c.x += (dx / dist) * speed; c.y += (dy / dist) * speed
         c.facing = dx > 0 ? 1 : -1; c.moving = true
