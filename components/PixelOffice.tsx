@@ -417,9 +417,15 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
     if (!meeting.active && (manualTrigger || t % 1200 === 0)) {
       const theo = chars.find(c => c.name === 'Theo') ?? chars[0]
       if (theo) {
-        const others = chars.filter(c => c.name !== 'Theo' && c.isOnline && c.state === 'at_desk')
-        if (others.length >= 1) {
-          const count = Math.min(Math.floor(1 + Math.random() * 3), others.length)
+        // For manual trigger: include any agent (online or idle). Auto: online only.
+        const pool = manualTrigger
+          ? chars.filter(c => c.id !== theo.id && c.state === 'at_desk')
+          : chars.filter(c => c.id !== theo.id && c.isOnline && c.state === 'at_desk')
+        const others = pool
+        if (others.length >= 0) {
+          const count = manualTrigger
+            ? Math.min(Math.floor(2 + Math.random() * 3), others.length)
+            : Math.min(Math.floor(1 + Math.random() * 3), others.length)
           const invited = others.sort(() => Math.random() - 0.5).slice(0, count)
           const all = [theo, ...invited]
 

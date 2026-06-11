@@ -9,6 +9,7 @@ export default function AgentDashboard({ initialAgents }: { initialAgents: Agent
   const [agents, setAgents] = useState(initialAgents)
   const [lastRefresh, setLastRefresh] = useState(new Date())
   const [meetingActive, setMeetingActive] = useState(false)
+  const [justClicked, setJustClicked] = useState(false)
   const callMeetingFnRef = useRef<(() => void) | null>(null)
 
   const refresh = useCallback(async () => {
@@ -56,13 +57,18 @@ export default function AgentDashboard({ initialAgents }: { initialAgents: Agent
       {/* Call Meeting button — completely outside canvas */}
       <div className="mb-4">
         <button
-          onClick={() => callMeetingFnRef.current?.()}
+          onClick={() => {
+            callMeetingFnRef.current?.()
+            setJustClicked(true)
+            setTimeout(() => setJustClicked(false), 800)
+          }}
           disabled={meetingActive}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           style={{
-            background: meetingActive ? '#1e293b' : 'rgba(99,102,241,0.2)',
+            background: justClicked ? 'rgba(99,102,241,0.5)' : meetingActive ? '#1e293b' : 'rgba(99,102,241,0.2)',
             border: '1px solid rgba(99,102,241,0.5)',
             color: meetingActive ? '#6366f1' : '#a5b4fc',
+            transform: justClicked ? 'scale(0.96)' : 'scale(1)',
           }}
         >
           <span className="text-base">{meetingActive ? '🔴' : '📢'}</span>
