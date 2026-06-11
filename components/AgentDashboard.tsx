@@ -64,37 +64,8 @@ export default function AgentDashboard({ initialAgents }: { initialAgents: Agent
         </div>
       </div>
 
-      {/* Pixel Office */}
-      <div className="mb-6">
-        <PixelOffice agents={agents} />
-      </div>
-
-      {/* Agent grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-        {agents.map(a => (
-          <div
-            key={a.id}
-            className={`bg-zinc-900 border rounded-xl p-3 transition-colors ${
-              a.isOnline ? 'border-zinc-700' : 'border-zinc-800/50'
-            }`}
-          >
-            <div className="flex items-start justify-between mb-2">
-              <span className="text-xl">{a.avatar_emoji}</span>
-              <span className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${a.isOnline ? 'bg-emerald-400' : 'bg-zinc-700'}`} />
-            </div>
-            <p className={`font-semibold text-sm ${a.isOnline ? 'text-white' : 'text-zinc-500'}`}>{a.name}</p>
-            <p className="text-zinc-600 text-xs truncate">{a.role}</p>
-            {a.lastAction && (
-              <p className="text-zinc-500 text-xs mt-2 leading-relaxed line-clamp-2">{a.lastAction}</p>
-            )}
-            {a.minutesAgo !== null && (
-              <p className="text-zinc-700 text-xs mt-1">
-                {a.minutesAgo < 1 ? 'just now' : `${a.minutesAgo}m ago`}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
+      {/* Agent grid + detail */}
+      <PixelOffice agents={agents} />
     </div>
   )
 }
