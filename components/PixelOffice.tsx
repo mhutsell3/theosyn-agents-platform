@@ -341,15 +341,23 @@ function drawMeetingAnnouncement(ctx: CanvasRenderingContext2D, meeting: Meeting
   ctx.globalAlpha = 1
 }
 
-export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
+export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: {
+  agents: AgentStatus[]
+  onCallMeeting?: (fn: () => void) => void
+  onMeetingChange?: (active: boolean) => void
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const charsRef = useRef<Char[]>([])
   const meetingRef = useRef<MeetingState>({ active: false, participants: [], timer: 0, announcement: '', announceTick: 0 })
   const triggerMeetingRef = useRef(false)
+
+  // Expose trigger to parent
+  useEffect(() => {
+    onCallMeeting?.(() => { triggerMeetingRef.current = true })
+  }, [onCallMeeting])
   const animRef = useRef(0)
   const tickRef = useRef(0)
   const [selected, setSelected] = useState<AgentStatus | null>(null)
-  const [meetingActive, setMeetingActive] = useState(false)
 
   useEffect(() => {
     if (charsRef.current.length > 0) return
@@ -420,7 +428,7 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
           meeting.timer = 500 + Math.floor(Math.random() * 300)
           meeting.announcement = `📢 Theo called ${invited.map(c => c.name).join(', ')} to a meeting!`
           meeting.announceTick = 220
-          setMeetingActive(true)
+          onMeetingChange?.(true)
 
           all.forEach((c, i) => {
             c.state = 'going_to_meeting'
@@ -455,7 +463,7 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
         meeting.active = false
         meeting.participants = []
         meeting.announcement = ''
-        setMeetingActive(false)
+        onMeetingChange?.(false)
       }
     }
 
@@ -572,21 +580,6 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
           className="w-full cursor-pointer block"
           style={{ maxWidth: CANVAS_W, display: 'block', margin: '0 auto' }}
         />
-        {/* Call Meeting button — overlaid bottom-left of canvas */}
-        <button
-          onClick={(e) => { e.stopPropagation(); triggerMeetingRef.current = true }}
-          disabled={meetingActive}
-          className="absolute bottom-4 left-4 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed z-10"
-          style={{
-            background: meetingActive ? 'rgba(30,41,59,0.95)' : 'rgba(99,102,241,0.9)',
-            border: '1px solid rgba(99,102,241,0.6)',
-            color: 'white',
-            backdropFilter: 'blur(8px)',
-          }}
-        >
-          <span>{meetingActive ? '🔴' : '📢'}</span>
-          {meetingActive ? 'Meeting in progress…' : 'Call Meeting'}
-        </button>
 
         {selected && (() => {
           const a = selected as AgentStatus

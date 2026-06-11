@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { signOut } from 'next-auth/react'
 import PixelOffice from './PixelOffice'
 import type { AgentStatus } from '@/lib/agents'
@@ -8,15 +8,14 @@ import type { AgentStatus } from '@/lib/agents'
 export default function AgentDashboard({ initialAgents }: { initialAgents: AgentStatus[] }) {
   const [agents, setAgents] = useState(initialAgents)
   const [lastRefresh, setLastRefresh] = useState(new Date())
+  const [meetingActive, setMeetingActive] = useState(false)
+  const callMeetingFnRef = useRef<(() => void) | null>(null)
 
   const refresh = useCallback(async () => {
     try {
       const res = await fetch('/api/agents')
       const data = await res.json()
-      if (data.agents) {
-        setAgents(data.agents)
-        setLastRefresh(new Date())
-      }
+      if (data.agents) { setAgents(data.agents); setLastRefresh(new Date()) }
     } catch {}
   }, [])
 
@@ -41,31 +40,42 @@ export default function AgentDashboard({ initialAgents }: { initialAgents: Agent
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Online status */}
           <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-4 py-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-zinc-300 text-sm font-medium">{online} / {total} online</span>
           </div>
-
-          {/* Refresh */}
-          <button
-            onClick={refresh}
-            className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors"
-          >
+          <button onClick={refresh} className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
             ↻ {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </button>
-
-          <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="text-zinc-600 hover:text-zinc-400 text-xs transition-colors"
-          >
+          <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-zinc-600 hover:text-zinc-400 text-xs transition-colors">
             Sign out
           </button>
         </div>
       </div>
 
-      {/* Agent grid + detail */}
-      <PixelOffice agents={agents} />
+      {/* Call Meeting button — completely outside canvas */}
+      <div className="mb-4">
+        <button
+          onClick={() => callMeetingFnRef.current?.()}
+          disabled={meetingActive}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{
+            background: meetingActive ? '#1e293b' : 'rgba(99,102,241,0.2)',
+            border: '1px solid rgba(99,102,241,0.5)',
+            color: meetingActive ? '#6366f1' : '#a5b4fc',
+          }}
+        >
+          <span className="text-base">{meetingActive ? '🔴' : '📢'}</span>
+          {meetingActive ? 'Meeting in progress…' : 'Call Meeting'}
+        </button>
+      </div>
+
+      {/* Canvas */}
+      <PixelOffice
+        agents={agents}
+        onCallMeeting={(fn) => { callMeetingFnRef.current = fn }}
+        onMeetingChange={setMeetingActive}
+      />
     </div>
   )
 }
