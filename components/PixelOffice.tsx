@@ -572,6 +572,21 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
           className="w-full cursor-pointer block"
           style={{ maxWidth: CANVAS_W, display: 'block', margin: '0 auto' }}
         />
+        {/* Call Meeting button — overlaid bottom-left of canvas */}
+        <button
+          onClick={(e) => { e.stopPropagation(); triggerMeetingRef.current = true }}
+          disabled={meetingActive}
+          className="absolute bottom-4 left-4 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed z-10"
+          style={{
+            background: meetingActive ? 'rgba(30,41,59,0.95)' : 'rgba(99,102,241,0.9)',
+            border: '1px solid rgba(99,102,241,0.6)',
+            color: 'white',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <span>{meetingActive ? '🔴' : '📢'}</span>
+          {meetingActive ? 'Meeting in progress…' : 'Call Meeting'}
+        </button>
 
         {selected && (() => {
           const a = selected as AgentStatus
@@ -603,22 +618,6 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
         })()}
       </div>
 
-      {/* Controls row */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <button
-          onClick={() => { triggerMeetingRef.current = true }}
-          disabled={meetingActive}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{
-            background: meetingActive ? '#1e293b' : 'rgba(99,102,241,0.15)',
-            border: '1px solid rgba(99,102,241,0.4)',
-            color: meetingActive ? '#6366f1' : '#818cf8',
-          }}
-        >
-          <span>{meetingActive ? '🔴' : '📢'}</span>
-          {meetingActive ? 'Meeting in progress…' : 'Call Meeting'}
-        </button>
-
       {/* Online agent pills */}
       <div className="flex flex-wrap gap-2">
         {agents.filter(a => a.isOnline).map(a => (
@@ -634,7 +633,6 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
             {a.avatar_emoji} {a.name}
           </button>
         ))}
-        </div>
       </div>
     </div>
   )
