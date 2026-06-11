@@ -50,7 +50,7 @@ type CharState = 'at_desk' | 'wandering' | 'to_desk' | 'going_to_meeting' | 'in_
 
 interface Char {
   id: string; name: string; emoji: string; color: string
-  isOnline: boolean; lastAction: string | null
+  isOnline: boolean; isAvailable: boolean; lastAction: string | null
   x: number; y: number; tx: number; ty: number
   walkFrame: number; walkTick: number; facing: 1 | -1; moving: boolean
   idleTick: number
@@ -368,7 +368,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       return {
         id: a.id, name: a.name, emoji: a.avatar_emoji,
         color: AGENT_COLORS[a.name] ?? '#6366f1',
-        isOnline: a.isOnline, lastAction: a.lastAction,
+        isOnline: a.isOnline, isAvailable: a.isAvailable, lastAction: a.lastAction,
         x: dx, y: dy, tx: dx, ty: dy,
         walkFrame: 0, walkTick: 0, facing: 1, moving: false,
         idleTick: Math.random() * 200,
@@ -382,7 +382,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
   useEffect(() => {
     charsRef.current.forEach(c => {
       const a = agents.find(x => x.id === c.id)
-      if (a) { c.isOnline = a.isOnline; c.lastAction = a.lastAction }
+      if (a) { c.isOnline = a.isOnline; c.isAvailable = a.isAvailable; c.lastAction = a.lastAction }
     })
   }, [agents])
 
@@ -417,7 +417,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
     if (!meeting.active && (manualTrigger || t % 1200 === 0)) {
       const theo = chars.find(c => c.name === 'Theo' && c.isOnline) ?? (manualTrigger ? chars.find(c => c.name === 'Theo') : null)
       if (theo) {
-        const others = chars.filter(c => c.id !== theo.id && c.isOnline && c.state === 'at_desk')
+        const others = chars.filter(c => c.id !== theo.id && c.isAvailable && c.state === 'at_desk')
         if (others.length >= 0) {
           const count = Math.min(Math.floor(1 + Math.random() * 3), others.length)
           const invited = others.sort(() => Math.random() - 0.5).slice(0, count)

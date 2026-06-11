@@ -8,6 +8,7 @@ export interface AgentStatus {
   ollama_model: string | null
   last_heartbeat: string | null
   isOnline: boolean
+  isAvailable: boolean  // heartbeat within 8 hours — eligible for meetings
   lastAction: string | null
   minutesAgo: number | null
 }
@@ -32,10 +33,12 @@ export async function getAgentStatuses(): Promise<AgentStatus[]> {
     const lastTime = a.last_heartbeat ? new Date(a.last_heartbeat) : null
     const minutesAgo = lastTime ? Math.floor((Date.now() - lastTime.getTime()) / 60000) : null
     const isOnline = minutesAgo !== null && minutesAgo < 60
+    const isAvailable = minutesAgo !== null && minutesAgo < 480
 
     return {
       ...a,
       isOnline,
+      isAvailable,
       lastAction: hb ? hb.content.slice(0, 120).replace(/\*\*/g, '').replace(/\*/g, '').replace(/#+\s?/g, '').replace(/`/g, '').trim() : null,
       minutesAgo,
     }
