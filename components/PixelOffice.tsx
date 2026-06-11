@@ -345,9 +345,11 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const charsRef = useRef<Char[]>([])
   const meetingRef = useRef<MeetingState>({ active: false, participants: [], timer: 0, announcement: '', announceTick: 0 })
+  const triggerMeetingRef = useRef(false)
   const animRef = useRef(0)
   const tickRef = useRef(0)
   const [selected, setSelected] = useState<AgentStatus | null>(null)
+  const [meetingActive, setMeetingActive] = useState(false)
 
   useEffect(() => {
     if (charsRef.current.length > 0) return
@@ -401,9 +403,11 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
     })
 
     // ── Meeting trigger ──
-    // Theo calls a meeting every ~1200 ticks if 2+ online agents
-    if (!meeting.active && t % 1200 === 0) {
-      const theo = chars.find(c => c.name === 'Theo' && c.isOnline)
+    const manualTrigger = triggerMeetingRef.current
+    if (manualTrigger) triggerMeetingRef.current = false
+
+    if (!meeting.active && (manualTrigger || t % 1200 === 0)) {
+      const theo = chars.find(c => c.name === 'Theo') ?? chars[0]
       if (theo) {
         const others = chars.filter(c => c.name !== 'Theo' && c.isOnline && c.state === 'at_desk')
         if (others.length >= 1) {
@@ -416,6 +420,7 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
           meeting.timer = 500 + Math.floor(Math.random() * 300)
           meeting.announcement = `📢 Theo called ${invited.map(c => c.name).join(', ')} to a meeting!`
           meeting.announceTick = 220
+          setMeetingActive(true)
 
           all.forEach((c, i) => {
             c.state = 'going_to_meeting'
@@ -438,7 +443,6 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
       if (meeting.announceTick > 0) meeting.announceTick--
 
       if (meeting.timer <= 0) {
-        // End meeting — everyone returns
         meeting.participants.forEach(id => {
           const c = chars.find(x => x.id === id)
           if (c) {
@@ -451,6 +455,7 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
         meeting.active = false
         meeting.participants = []
         meeting.announcement = ''
+        setMeetingActive(false)
       }
     }
 
@@ -598,6 +603,22 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
         })()}
       </div>
 
+      {/* Controls row */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <button
+          onClick={() => { triggerMeetingRef.current = true }}
+          disabled={meetingActive}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{
+            background: meetingActive ? '#1e293b' : 'rgba(99,102,241,0.15)',
+            border: '1px solid rgba(99,102,241,0.4)',
+            color: meetingActive ? '#6366f1' : '#818cf8',
+          }}
+        >
+          <span>{meetingActive ? '🔴' : '📢'}</span>
+          {meetingActive ? 'Meeting in progress…' : 'Call Meeting'}
+        </button>
+
       {/* Online agent pills */}
       <div className="flex flex-wrap gap-2">
         {agents.filter(a => a.isOnline).map(a => (
@@ -613,6 +634,7 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
             {a.avatar_emoji} {a.name}
           </button>
         ))}
+        </div>
       </div>
     </div>
   )
