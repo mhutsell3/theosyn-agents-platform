@@ -36,7 +36,7 @@ export async function getAgentStatuses(): Promise<AgentStatus[]> {
     return {
       ...a,
       isOnline,
-      lastAction: hb ? hb.content.slice(0, 120).replace(/#+\s/g, '').trim() : null,
+      lastAction: hb ? hb.content.slice(0, 120).replace(/\*\*/g, '').replace(/\*/g, '').replace(/#+\s?/g, '').replace(/`/g, '').trim() : null,
       minutesAgo,
     }
   })

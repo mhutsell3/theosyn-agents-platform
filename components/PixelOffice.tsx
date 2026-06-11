@@ -120,8 +120,8 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
       }
 
       // Name label
-      ctx.fillStyle = '#94a3b8'
-      ctx.font = '8px monospace'
+      ctx.fillStyle = '#cbd5e1'
+      ctx.font = 'bold 9px monospace'
       ctx.textAlign = 'center'
       ctx.fillText(a.name, px + CELL * 0.75, py + CELL - 2)
     })
@@ -206,8 +206,8 @@ export default function PixelOffice({ agents }: { agents: AgentStatus[] }) {
         ctx.fillStyle = 'rgba(15,52,96,0.95)'
         ctx.fill()
 
-        ctx.fillStyle = '#e2e8f0'
-        ctx.font = '7px monospace'
+        ctx.fillStyle = '#f1f5f9'
+        ctx.font = '8px monospace'
         ctx.textAlign = 'center'
         // Word wrap into 2 lines
         const words = state.bubble.split(' ')
