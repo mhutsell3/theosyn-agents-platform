@@ -103,7 +103,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
     const ctx: CanvasRenderingContext2D = ctxMaybe
 
     const W = container.clientWidth || 1280
-    const H = Math.round(W * 0.50)
+    const H = Math.round(W * 0.60)
     canvas.width = W; canvas.height = H
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
 
@@ -117,9 +117,10 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
     const sceneCX = sceneMaxX / 2
     const sceneCZ = sceneMaxZ / 2
 
-    // Origin: 35px from top for label headroom, horizontally centered on scene midpoint
+    // Compute scene screen dimensions for centering
+    const sceneScreenH = (sceneMaxX + sceneMaxZ) * (TILE_H / 2)
     const originX = W / 2 - (sceneCX - sceneCZ) * (TILE_W / 2)
-    const originY = 35
+    const originY = Math.max(35, (H - sceneScreenH) / 2)
     originRef.current = { x: originX, y: originY }
 
     charsRef.current = agentsRef.current.map(a => {
