@@ -757,12 +757,12 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
               className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all"
               style={{
                 background: selected?.id === a.id ? `${col}1a` : 'rgba(6,10,20,0.9)',
-                borderColor: `${col}${a.isOnline ? '55' : '30'}`,
-                color: a.isOnline ? col : '#4a5a72',
+                borderColor: `${col}${a.isOnline ? '55' : '40'}`,
+                color: a.isOnline ? col : '#8a9ab8',
                 boxShadow: a.isOnline && selected?.id === a.id ? `0 0 10px ${col}33` : 'none',
               }}>
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ background: a.isOnline ? col : '#2a3a50', boxShadow: a.isOnline ? `0 0 5px ${col}` : 'none' }} />
+                style={{ background: a.isOnline ? col : '#4a5a72', boxShadow: a.isOnline ? `0 0 5px ${col}` : 'none' }} />
               {a.avatar_emoji} {a.name}
             </button>
           )
