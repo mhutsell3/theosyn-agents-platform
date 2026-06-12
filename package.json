@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "migrate": "node scripts/migrate.js",
+    "start:railway": "node scripts/migrate.js && next start"
   },
   "dependencies": {
     "@types/three": "^0.184.1",
