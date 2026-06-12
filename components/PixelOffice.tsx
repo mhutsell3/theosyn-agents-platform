@@ -132,7 +132,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       renderer.shadowMap.type = THREE.PCFSoftShadowMap
       renderer.toneMapping = THREE.ACESFilmicToneMapping
       renderer.toneMappingExposure = 1.6
-      renderer.setClearColor(0x030710)
+      renderer.setClearColor(0x220033)
       mountRef.current!.appendChild(renderer.domElement)
 
       scene = new THREE.Scene()
