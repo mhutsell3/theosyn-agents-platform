@@ -91,7 +91,55 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
   const [announce, setAnnounce] = useState('')
   const [confOn, setConfOn] = useState(false)
 
-  useEffect(() => { agentsRef.current = agents }, [agents])
+  useEffect(() => {
+    agentsRef.current = agents
+
+    // Rebuild chars when agent list membership changes (added/removed agents)
+    const canvas = canvasRef.current
+    const container = containerRef.current
+    if (!canvas || !container) return
+
+    const newIds = new Set(agents.map(a => a.id))
+    const existingIds = new Set(charsRef.current.map(c => c.id))
+    const changed = agents.some(a => !existingIds.has(a.id)) || charsRef.current.some(c => !newIds.has(c.id))
+    if (!changed) return
+
+    const W = container.clientWidth || 1280
+    const H = Math.min(Math.round(W * 0.56), 700)
+    canvas.width = W; canvas.height = H
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
+
+    const deskMap = buildLayout(agents)
+    const allX = Object.values(deskMap).map(d => d.x)
+    const allZ = Object.values(deskMap).map(d => d.z)
+    const sceneMaxX = Math.max(...allX, CONF_X + CONF_W) + 2
+    const sceneMaxZ = Math.max(...allZ, CONF_Z + CONF_D) + 2
+    const sceneCX = sceneMaxX / 2; const sceneCZ = sceneMaxZ / 2
+    const sceneScreenH = (sceneMaxX + sceneMaxZ) * (TILE_H / 2)
+    const originX = W / 2 - (sceneCX - sceneCZ) * (TILE_W / 2) - (sceneMaxX - sceneMaxZ) * (TILE_W / 2) * 0.15
+    const originY = Math.max(30, (H - sceneScreenH) / 2 - 5)
+    originRef.current = { x: originX, y: originY }
+
+    // Keep existing char state, add new ones, drop removed ones
+    const existingMap = new Map(charsRef.current.map(c => [c.id, c]))
+    charsRef.current = agents.map(a => {
+      if (existingMap.has(a.id)) return existingMap.get(a.id)!
+      const d = deskMap[a.name] ?? { x: CONF_W + 3, z: 1.5 }
+      return {
+        id: a.id, name: a.name, emoji: a.avatar_emoji,
+        online: a.isOnline, available: a.isAvailable, lastAction: a.lastAction,
+        x: d.x, z: d.z, tx: d.x, tz: d.z, deskX: d.x, deskZ: d.z,
+        state: 'at_desk' as const, timer: 60 + Math.random() * 160, seatIdx: -1,
+        moving: false, facing: 0, bubble: null, bubbleTimer: 0,
+        phase: Math.random() * Math.PI * 2, pulse: Math.random() * Math.PI * 2,
+      }
+    })
+    // Also update desk positions for existing chars (layout may have shifted)
+    charsRef.current.forEach(c => {
+      const d = deskMap[c.name]
+      if (d) { c.deskX = d.x; c.deskZ = d.z }
+    })
+  }, [agents])
   useEffect(() => { onCallMeeting?.(() => { triggerRef.current = true }) }, [onCallMeeting])
 
   useEffect(() => {
