@@ -92,7 +92,8 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
   useEffect(() => { onCallMeeting?.(() => { triggerRef.current = true }) }, [onCallMeeting])
 
   useEffect(() => {
-    if (!mountRef.current || !containerRef.current) return
+    console.log('PixelOffice effect running, mountRef:', !!mountRef.current, 'containerRef:', !!containerRef.current)
+    if (!mountRef.current || !containerRef.current) { console.error('REFS NULL - returning early'); return }
     const W = containerRef.current.clientWidth || 1200
     const H = Math.round(W * 0.52)
 
