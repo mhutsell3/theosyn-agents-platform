@@ -228,51 +228,166 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
 
     function drawCharacter(c: Char, t: number) {
       const col = COL[c.name] ?? DEFAULT_COL
+      const { r, g, b } = hexToRgb(col)
       const { sx, sy } = iso(c.x, c.z)
-      const bobY = c.moving ? Math.abs(Math.sin(c.phase)) * 4 : Math.sin(c.phase * 0.35) * 2
+      const walkCycle = c.moving ? Math.sin(c.phase) : 0
+      const bobY = c.moving ? Math.abs(Math.sin(c.phase)) * 3 : Math.sin(c.phase * 0.35) * 1.5
       const baseY = sy - bobY
+      const alpha = c.online ? 1.0 : 0.45
+      const glowBlur = c.online ? 14 : 4
 
-      // Glow ring on floor
-      const gAlpha = c.online ? 0.35 + Math.sin(c.pulse + t * 0.05) * 0.15 : 0.08
+      // Glow shadow on floor
+      const gAlpha = c.online ? 0.3 + Math.sin(c.pulse + t * 0.05) * 0.12 : 0.06
       ctx.save()
       ctx.globalAlpha = gAlpha
-      ctx.shadowColor = col; ctx.shadowBlur = 20
-      const rg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 18)
-      rg.addColorStop(0, glowColor(col, 0.5))
+      ctx.shadowColor = col; ctx.shadowBlur = 22
+      const rg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 16)
+      rg.addColorStop(0, glowColor(col, 0.55))
       rg.addColorStop(1, glowColor(col, 0))
       ctx.fillStyle = rg
-      ctx.beginPath(); ctx.ellipse(sx, sy, 18, 9, 0, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.ellipse(sx, sy, 16, 8, 0, 0, Math.PI * 2); ctx.fill()
       ctx.restore()
 
-      // Body (diamond shape)
-      const bh = 22; const bw = 8
       ctx.save()
-      ctx.shadowColor = col; ctx.shadowBlur = c.online ? 18 : 6
+      ctx.globalAlpha = alpha
+      ctx.shadowColor = col; ctx.shadowBlur = glowBlur
+
+      // Skin tone
+      const skin = c.online ? '#f5c9a0' : '#8090a8'
+
+      // Leg positions (walk cycle)
+      const legSwing = walkCycle * 3.5
+      const legY = baseY - 2
+
+      // Left leg
       ctx.fillStyle = col
-      ctx.globalAlpha = c.online ? 0.95 : 0.45
       ctx.beginPath()
-      ctx.moveTo(sx, baseY - bh)
-      ctx.lineTo(sx + bw, baseY - bh * 0.5)
-      ctx.lineTo(sx, baseY)
-      ctx.lineTo(sx - bw, baseY - bh * 0.5)
-      ctx.closePath()
+      ctx.roundRect(sx - 4.5, legY - 10, 4, 11, 1)
+      ctx.fill()
+      // Left foot
+      ctx.fillStyle = `rgb(${Math.max(0,r-40)},${Math.max(0,g-40)},${Math.max(0,b-40)})`
+      ctx.beginPath()
+      ctx.roundRect(sx - 6 + legSwing * 0.4, legY, 5, 3, 1)
+      ctx.fill()
+
+      // Right leg
+      ctx.fillStyle = col
+      ctx.beginPath()
+      ctx.roundRect(sx + 0.5, legY - 10, 4, 11, 1)
+      ctx.fill()
+      // Right foot
+      ctx.fillStyle = `rgb(${Math.max(0,r-40)},${Math.max(0,g-40)},${Math.max(0,b-40)})`
+      ctx.beginPath()
+      ctx.roundRect(sx + 1 - legSwing * 0.4, legY, 5, 3, 1)
+      ctx.fill()
+
+      // Torso (shirt in agent color)
+      const torsoTop = legY - 22
+      ctx.fillStyle = col
+      ctx.shadowBlur = glowBlur * 1.4
+      ctx.beginPath()
+      ctx.roundRect(sx - 6, torsoTop, 12, 14, 2)
+      ctx.fill()
+
+      // Torso shading (darker center stripe)
+      ctx.globalAlpha = alpha * 0.35
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'
+      ctx.beginPath()
+      ctx.roundRect(sx - 1.5, torsoTop + 1, 3, 12, 1)
+      ctx.fill()
+      ctx.globalAlpha = alpha
+
+      // Left arm (swings opposite to walk)
+      const armSwing = -walkCycle * 4
+      ctx.fillStyle = col
+      ctx.shadowBlur = glowBlur
+      ctx.save()
+      ctx.translate(sx - 7, torsoTop + 2)
+      ctx.rotate(armSwing * 0.06)
+      ctx.beginPath()
+      ctx.roundRect(-2, 0, 3.5, 10, 1)
+      ctx.fill()
+      // Hand
+      ctx.fillStyle = skin
+      ctx.beginPath()
+      ctx.arc(-0.5, 11, 2.2, 0, Math.PI * 2)
       ctx.fill()
       ctx.restore()
 
-      // Head circle
-      const headY = baseY - bh - 7
+      // Right arm
+      ctx.fillStyle = col
       ctx.save()
-      ctx.shadowColor = col; ctx.shadowBlur = c.online ? 14 : 4
-      ctx.fillStyle = c.online ? col : '#1e3060'
-      ctx.globalAlpha = c.online ? 1.0 : 0.5
-      ctx.beginPath(); ctx.arc(sx, headY, 6, 0, Math.PI * 2); ctx.fill()
-      // emoji-like inner dot
-      ctx.fillStyle = 'rgba(0,0,0,0.4)'
-      ctx.beginPath(); ctx.arc(sx, headY, 3, 0, Math.PI * 2); ctx.fill()
+      ctx.translate(sx + 7, torsoTop + 2)
+      ctx.rotate(-armSwing * 0.06)
+      ctx.beginPath()
+      ctx.roundRect(-1.5, 0, 3.5, 10, 1)
+      ctx.fill()
+      // Hand
+      ctx.fillStyle = skin
+      ctx.beginPath()
+      ctx.arc(0.5, 11, 2.2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+
+      // Neck
+      ctx.fillStyle = skin
+      ctx.shadowBlur = 0
+      ctx.beginPath()
+      ctx.roundRect(sx - 2, torsoTop - 4, 4, 5, 1)
+      ctx.fill()
+
+      // Head
+      const headCY = torsoTop - 10
+      ctx.shadowColor = col; ctx.shadowBlur = glowBlur * 1.2
+      ctx.fillStyle = skin
+      ctx.beginPath()
+      ctx.ellipse(sx, headCY, 7, 8, 0, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Hair (use agent color)
+      ctx.fillStyle = col
+      ctx.shadowBlur = glowBlur
+      ctx.beginPath()
+      ctx.ellipse(sx, headCY - 3, 7.2, 5.5, 0, Math.PI, Math.PI * 2)
+      ctx.fill()
+      // Hair side bits
+      ctx.beginPath()
+      ctx.ellipse(sx - 6.5, headCY - 1, 2, 4, -0.3, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.ellipse(sx + 6.5, headCY - 1, 2, 4, 0.3, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Eyes
+      ctx.shadowBlur = 0
+      ctx.fillStyle = c.online ? '#1a1a2e' : '#0a1020'
+      ctx.beginPath(); ctx.arc(sx - 2.8, headCY + 1, 1.4, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.arc(sx + 2.8, headCY + 1, 1.4, 0, Math.PI * 2); ctx.fill()
+      // Eye shine
+      ctx.fillStyle = c.online ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)'
+      ctx.beginPath(); ctx.arc(sx - 2.2, headCY + 0.5, 0.6, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.arc(sx + 3.3, headCY + 0.5, 0.6, 0, Math.PI * 2); ctx.fill()
+
+      // Mouth (small smile when online)
+      if (c.online) {
+        ctx.strokeStyle = '#a0604a'
+        ctx.lineWidth = 1; ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.arc(sx, headCY + 3.5, 2.5, 0.2, Math.PI - 0.2)
+        ctx.stroke()
+      }
+
+      // Online status dot on chest
+      if (c.online) {
+        ctx.fillStyle = '#22c55e'
+        ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 8
+        ctx.beginPath(); ctx.arc(sx, torsoTop + 5, 2, 0, Math.PI * 2); ctx.fill()
+      }
+
       ctx.restore()
 
       // Label
-      const labelY = headY - 14
+      const labelY = headCY - 22
       const label = `${c.emoji} ${c.name}`
       ctx.save()
       ctx.font = `bold 9px ui-monospace, monospace`
