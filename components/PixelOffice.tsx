@@ -1,89 +1,92 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import * as THREE from 'three'
 import type { AgentStatus } from '@/lib/agents'
 
-const COL: Record<string, { num: number; hex: string }> = {
-  Theo:      { num: 0x6366f1, hex: '#6366f1' },
-  Scout:     { num: 0x10b981, hex: '#10b981' },
-  Nova:      { num: 0xf59e0b, hex: '#f59e0b' },
-  Quill:     { num: 0x8b5cf6, hex: '#8b5cf6' },
-  Beacon:    { num: 0x06b6d4, hex: '#06b6d4' },
-  Flow:      { num: 0x3b82f6, hex: '#3b82f6' },
-  Piper:     { num: 0xec4899, hex: '#ec4899' },
-  Remi:      { num: 0xef4444, hex: '#ef4444' },
-  Sage:      { num: 0x84cc16, hex: '#84cc16' },
-  Lumen:     { num: 0xf97316, hex: '#f97316' },
-  Atlas:     { num: 0x64748b, hex: '#64748b' },
-  Scribe:    { num: 0xa78bfa, hex: '#a78bfa' },
-  Forge:     { num: 0xd97706, hex: '#d97706' },
-  Gather:    { num: 0x059669, hex: '#059669' },
-  Grant:     { num: 0x7c3aed, hex: '#7c3aed' },
-  Herald:    { num: 0xe11d48, hex: '#e11d48' },
-  Missions:  { num: 0x0284c7, hex: '#0284c7' },
-  Orion:     { num: 0x9333ea, hex: '#9333ea' },
-  Pulse:     { num: 0xf43f5e, hex: '#f43f5e' },
-  Reach:     { num: 0x14b8a6, hex: '#14b8a6' },
-  Serve:     { num: 0x22c55e, hex: '#22c55e' },
-  Shepherd:  { num: 0xeab308, hex: '#eab308' },
-  Steward:   { num: 0x6366f1, hex: '#6366f1' },
-  Flock:     { num: 0xa855f7, hex: '#a855f7' },
-  Welcome:   { num: 0x38bdf8, hex: '#38bdf8' },
+const COL: Record<string, string> = {
+  Theo: '#6366f1', Scout: '#10b981', Nova: '#f59e0b', Quill: '#8b5cf6',
+  Beacon: '#06b6d4', Flow: '#3b82f6', Piper: '#ec4899', Remi: '#ef4444',
+  Sage: '#84cc16', Lumen: '#f97316', Atlas: '#64748b', Scribe: '#a78bfa',
+  Forge: '#d97706', Gather: '#059669', Grant: '#7c3aed', Herald: '#e11d48',
+  Missions: '#0284c7', Orion: '#9333ea', Pulse: '#f43f5e', Reach: '#14b8a6',
+  Serve: '#22c55e', Shepherd: '#eab308', Steward: '#6366f1', Flock: '#a855f7',
+  Welcome: '#38bdf8',
 }
-const DEFAULT_COL = { num: 0x6366f1, hex: '#6366f1' }
+const DEFAULT_COL = '#6366f1'
 
-// Build desk grid dynamically from agents list
+// Isometric projection
+const ISO_ANGLE = Math.PI / 6  // 30 degrees
+const TILE_W = 52
+const TILE_H = 28
+
+function isoProject(x: number, z: number, originX: number, originY: number) {
+  return {
+    sx: originX + (x - z) * (TILE_W / 2),
+    sy: originY + (x + z) * (TILE_H / 2),
+  }
+}
+
+const CONF_W = 5; const CONF_D = 10
+const CONF_X = 0; const CONF_Z = 0
+const CONF_CX = CONF_X + CONF_W / 2; const CONF_CZ = CONF_Z + CONF_D / 2
+const CONF_ENTRY_X = CONF_X + CONF_W + 0.5
+
+const CONF_SEATS = [
+  { x: CONF_CX - 0.8, z: CONF_CZ - 2 },
+  { x: CONF_CX + 0.8, z: CONF_CZ - 2 },
+  { x: CONF_CX - 1.4, z: CONF_CZ },
+  { x: CONF_CX + 1.4, z: CONF_CZ },
+  { x: CONF_CX - 0.8, z: CONF_CZ + 2 },
+  { x: CONF_CX + 0.8, z: CONF_CZ + 2 },
+]
+
 function buildLayout(agents: AgentStatus[]) {
   const COLS = 5
-  const rows: { x: number; z: number }[][] = []
-  const map: Record<string, { col: number; row: number }> = {}
+  const map: Record<string, { col: number; row: number; x: number; z: number }> = {}
   agents.forEach((a, i) => {
     const col = i % COLS
     const row = Math.floor(i / COLS)
-    if (!rows[row]) rows[row] = []
-    const x = 1.5 + col * 3.2
-    const z = 1.8 + row * 4.5
-    rows[row][col] = { x, z }
-    map[a.name] = { col, row }
+    const x = CONF_W + 2.5 + col * 3.0
+    const z = 1.5 + row * 3.5
+    map[a.name] = { col, row, x, z }
   })
-  return { map, rows }
+  return map
 }
-
-const CONF_X = 0; const CONF_Z = 0; const CONF_W = 6.5; const CONF_D = 14
-const CONF_CX = CONF_X + CONF_W / 2; const CONF_CZ = CONF_Z + CONF_D / 2
-const CONF_ENTRY_X = CONF_X + CONF_W + 0.2
-const CONF_SEATS = [
-  { x: CONF_CX, z: CONF_Z + 2.2 },
-  { x: CONF_CX + 1.8, z: CONF_CZ - 1.5 },
-  { x: CONF_CX + 1.8, z: CONF_CZ + 1.5 },
-  { x: CONF_CX, z: CONF_Z + CONF_D - 2.2 },
-  { x: CONF_CX - 1.8, z: CONF_CZ + 1.5 },
-  { x: CONF_CX - 1.8, z: CONF_CZ - 1.5 },
-]
 
 type CS = 'at_desk' | 'wandering' | 'to_desk' | 'going_to_meeting' | 'in_meeting'
 interface Char {
   id: string; name: string; emoji: string; online: boolean; available: boolean; lastAction: string | null
   x: number; z: number; tx: number; tz: number; deskX: number; deskZ: number
   state: CS; timer: number; seatIdx: number; moving: boolean; facing: number
-  bubble: string | null; bubbleTimer: number; phase: number
+  bubble: string | null; bubbleTimer: number; phase: number; pulse: number
 }
 interface Meeting { active: boolean; participants: string[]; timer: number; announce: string; announceTick: number }
+
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return { r, g, b }
+}
+
+function glowColor(hex: string, alpha = 0.6) {
+  const { r, g, b } = hexToRgb(hex)
+  return `rgba(${r},${g},${b},${alpha})`
+}
 
 export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: {
   agents: AgentStatus[]
   onCallMeeting?: (fn: () => void) => void
   onMeetingChange?: (active: boolean) => void
 }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const mountRef = useRef<HTMLDivElement>(null)
-  const labelsRef = useRef<HTMLDivElement>(null)
   const charsRef = useRef<Char[]>([])
   const agentsRef = useRef(agents)
   const meetRef = useRef<Meeting>({ active: false, participants: [], timer: 0, announce: '', announceTick: 0 })
   const triggerRef = useRef(false)
   const tickRef = useRef(0)
+  const originRef = useRef({ x: 0, y: 0 })
   const [selected, setSelected] = useState<AgentStatus | null>(null)
   const [announce, setAnnounce] = useState('')
   const [confOn, setConfOn] = useState(false)
@@ -92,454 +95,507 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
   useEffect(() => { onCallMeeting?.(() => { triggerRef.current = true }) }, [onCallMeeting])
 
   useEffect(() => {
-    console.log('PixelOffice effect running, mountRef:', !!mountRef.current, 'containerRef:', !!containerRef.current)
-    if (!mountRef.current || !containerRef.current) { console.error('REFS NULL - returning early'); return }
-    const W = containerRef.current.clientWidth || 1200
-    const H = Math.round(W * 0.52)
+    const canvas = canvasRef.current
+    const container = containerRef.current
+    if (!canvas || !container) return
+    const ctxMaybe = canvas.getContext('2d')
+    if (!ctxMaybe) return
+    const ctx: CanvasRenderingContext2D = ctxMaybe
 
-    const initAgents = agentsRef.current
-    const { map: deskMap, rows: deskRows } = buildLayout(initAgents)
+    const W = container.clientWidth || 1280
+    const H = Math.round(W * 0.50)
+    canvas.width = W; canvas.height = H
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
 
-    charsRef.current = initAgents.map(a => {
-      const L = deskMap[a.name]
-      const row = L ? deskRows[L.row] : deskRows[0]
-      const pos = (row && L) ? row[L.col] : { x: 5, z: 5 }
-      // Offset for conference room on left side: shift desks right
-      const px = pos.x + CONF_W + 2.5
-      const pz = pos.z
+    const deskMap = buildLayout(agentsRef.current)
+
+    // Compute scene bounds to center origin
+    const allX = Object.values(deskMap).map(d => d.x)
+    const allZ = Object.values(deskMap).map(d => d.z)
+    const sceneMaxX = Math.max(...allX, CONF_X + CONF_W) + 2
+    const sceneMaxZ = Math.max(...allZ, CONF_Z + CONF_D) + 2
+    const sceneCX = sceneMaxX / 2
+    const sceneCZ = sceneMaxZ / 2
+
+    // Origin: center of canvas, shifted up so scene fits
+    const originX = W / 2 - (sceneCX - sceneCZ) * (TILE_W / 2)
+    const originY = H * 0.38 - (sceneCX + sceneCZ) * (TILE_H / 2) * 0.5
+    originRef.current = { x: originX, y: originY }
+
+    charsRef.current = agentsRef.current.map(a => {
+      const d = deskMap[a.name] ?? { x: CONF_W + 3, z: 1.5 }
       return {
         id: a.id, name: a.name, emoji: a.avatar_emoji,
         online: a.isOnline, available: a.isAvailable, lastAction: a.lastAction,
-        x: px, z: pz, tx: px, tz: pz, deskX: px, deskZ: pz,
-        state: 'at_desk', timer: 80 + Math.random() * 180, seatIdx: -1,
+        x: d.x, z: d.z, tx: d.x, tz: d.z, deskX: d.x, deskZ: d.z,
+        state: 'at_desk', timer: 60 + Math.random() * 160, seatIdx: -1,
         moving: false, facing: 0, bubble: null, bubbleTimer: 0,
-        phase: Math.random() * Math.PI * 2,
+        phase: Math.random() * Math.PI * 2, pulse: Math.random() * Math.PI * 2,
       }
     })
 
-    let renderer: THREE.WebGLRenderer | null = null
-    let scene: THREE.Scene, camera: THREE.OrthographicCamera
     let rafId: number
-    const charMeshes = new Map<string, { grp: THREE.Group; body: THREE.Mesh; lite: THREE.PointLight; lbl: HTMLDivElement }>()
-    let confLight: THREE.PointLight | null = null
-    let ringMesh: THREE.Mesh | null = null
-    let hologram: THREE.Group | null = null
 
-    const init = () => {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
-      renderer.setSize(W, H)
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-      renderer.shadowMap.enabled = true
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap
-      renderer.toneMapping = THREE.ACESFilmicToneMapping
-      renderer.toneMappingExposure = 1.6
-      renderer.setClearColor(0x220033)
-      mountRef.current!.appendChild(renderer.domElement)
+    // ── Drawing helpers ─────────────────────────────────────────────────────
 
-      scene = new THREE.Scene()
-      scene.fog = new THREE.FogExp2(0x030710, 0.005)
+    function iso(x: number, z: number) {
+      return isoProject(x, z, originX, originY)
+    }
 
-      // Compute office bounds to center camera
-      const allX = charsRef.current.map(c => c.deskX)
-      const allZ = charsRef.current.map(c => c.deskZ)
-      const minX = Math.min(CONF_X, ...allX) - 1
-      const maxX = Math.max(...allX) + 2
-      const minZ = Math.min(CONF_Z, ...allZ) - 1
-      const maxZ = Math.max(...allZ) + 2
-      const cx = (minX + maxX) / 2
-      const cz = (minZ + maxZ) / 2
-      const spanX = maxX - minX + 4
-      const spanZ = maxZ - minZ + 4
+    function drawFloor(x: number, z: number, w: number, d: number, fillColor: string, alpha = 1) {
+      const tl = iso(x, z)
+      const tr = iso(x + w, z)
+      const br = iso(x + w, z + d)
+      const bl = iso(x, z + d)
+      ctx.save()
+      ctx.globalAlpha = alpha
+      ctx.beginPath()
+      ctx.moveTo(tl.sx, tl.sy)
+      ctx.lineTo(tr.sx, tr.sy)
+      ctx.lineTo(br.sx, br.sy)
+      ctx.lineTo(bl.sx, bl.sy)
+      ctx.closePath()
+      ctx.fillStyle = fillColor
+      ctx.fill()
+      ctx.restore()
+    }
 
-      // Isometric orthographic camera fitting the scene
-      const asp = W / H
-      const fH = Math.max(spanX / asp, spanZ) * 0.65
-      camera = new THREE.OrthographicCamera(-fH * asp, fH * asp, fH, -fH, 0.1, 300)
-      camera.position.set(cx + spanX * 0.7, spanX * 0.55, cz + spanZ * 0.7)
-      camera.lookAt(cx, 0, cz)
+    function drawBox(x: number, z: number, w: number, d: number, h: number,
+      topColor: string, leftColor: string, rightColor: string, glowCol?: string) {
+      // Top face
+      const tl = iso(x, z)
+      const tr = iso(x + w, z)
+      const br = iso(x + w, z + d)
+      const bl = iso(x, z + d)
+      ctx.beginPath()
+      ctx.moveTo(tl.sx, tl.sy - h)
+      ctx.lineTo(tr.sx, tr.sy - h)
+      ctx.lineTo(br.sx, br.sy - h)
+      ctx.lineTo(bl.sx, bl.sy - h)
+      ctx.closePath()
+      ctx.fillStyle = topColor
+      ctx.fill()
 
-      // ── Lighting ───────────────────────────────────────────
-      scene.add(new THREE.AmbientLight(0x334477, 6.0))
-      scene.add(new THREE.HemisphereLight(0x2255aa, 0x001133, 3.0))
-      const sun = new THREE.DirectionalLight(0xaabbff, 4.0)
-      sun.position.set(cx + 10, 25, cz + 5); sun.castShadow = true
-      sun.shadow.mapSize.set(2048, 2048)
-      sun.shadow.camera.left = -40; sun.shadow.camera.right = 40
-      sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30
-      sun.shadow.bias = -0.001
-      scene.add(sun)
-      const fill = new THREE.DirectionalLight(0x6699ff, 2.5)
-      fill.position.set(cx - 15, 10, cz - 10); scene.add(fill)
-      const rim = new THREE.DirectionalLight(0xff44ff, 1.2)
-      rim.position.set(cx + 5, 8, cz - 20); scene.add(rim)
+      // Left face (x+w side, facing right in iso)
+      ctx.beginPath()
+      ctx.moveTo(tr.sx, tr.sy - h)
+      ctx.lineTo(br.sx, br.sy - h)
+      ctx.lineTo(br.sx, br.sy)
+      ctx.lineTo(tr.sx, tr.sy)
+      ctx.closePath()
+      ctx.fillStyle = rightColor
+      ctx.fill()
 
-      // ── Floor ──────────────────────────────────────────────
-      const floorW = maxX - minX + 8
-      const floorD = maxZ - minZ + 8
-      const floorGeo = new THREE.PlaneGeometry(floorW, floorD)
-      const floorMat = new THREE.MeshStandardMaterial({ color: 0x080e1c, roughness: 0.9, metalness: 0.15, emissive: 0x050a15, emissiveIntensity: 0.5 })
-      const floor = new THREE.Mesh(floorGeo, floorMat)
-      floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0, cz); floor.receiveShadow = true
-      scene.add(floor)
-      const grid = new THREE.GridHelper(Math.max(floorW, floorD) + 4, Math.round(Math.max(floorW, floorD) + 4), 0x1a3a6e, 0x0f2044)
-      grid.position.set(cx, 0.006, cz); scene.add(grid)
+      // Right face (z+d side, facing left in iso)
+      ctx.beginPath()
+      ctx.moveTo(br.sx, br.sy - h)
+      ctx.lineTo(bl.sx, bl.sy - h)
+      ctx.lineTo(bl.sx, bl.sy)
+      ctx.lineTo(br.sx, br.sy)
+      ctx.closePath()
+      ctx.fillStyle = leftColor
+      ctx.fill()
 
-      // Row lanes
-      const maxRow = Math.max(...Object.values(deskMap).map(d => d.row))
-      for (let r = 0; r <= maxRow; r++) {
-        const rz = 1.8 + r * 4.5
-        const laneGeo = new THREE.PlaneGeometry(maxX - CONF_W - 2, 0.7)
-        const laneMat = new THREE.MeshStandardMaterial({ color: 0x0e1e35, roughness: 0.9 })
-        const lane = new THREE.Mesh(laneGeo, laneMat)
-        lane.rotation.x = -Math.PI / 2
-        lane.position.set((CONF_W + 2.5 + maxX) / 2, 0.007, rz + 1.5)
-        scene.add(lane)
+      if (glowCol) {
+        ctx.save()
+        ctx.shadowColor = glowCol; ctx.shadowBlur = 12
+        ctx.strokeStyle = glowCol; ctx.lineWidth = 0.5
+        ctx.beginPath()
+        ctx.moveTo(tl.sx, tl.sy - h)
+        ctx.lineTo(tr.sx, tr.sy - h)
+        ctx.lineTo(br.sx, br.sy - h)
+        ctx.lineTo(bl.sx, bl.sy - h)
+        ctx.closePath()
+        ctx.stroke()
+        ctx.restore()
       }
+    }
 
-      // ── Desks ─────────────────────────────────────────────
-      initAgents.forEach(a => {
-        const L = deskMap[a.name]; if (!L) return
-        const rowArr = deskRows[L.row]; if (!rowArr) return
-        const p = rowArr[L.col]; if (!p) return
-        const dx = p.x + CONF_W + 2.5, dz = p.z
-        const c = COL[a.name] ?? DEFAULT_COL
+    function drawIsoLine(x1: number, z1: number, x2: number, z2: number, y: number, color: string, glow = 8) {
+      const a = iso(x1, z1)
+      const b = iso(x2, z2)
+      ctx.save()
+      ctx.shadowColor = color; ctx.shadowBlur = glow
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(a.sx, a.sy - y)
+      ctx.lineTo(b.sx, b.sy - y)
+      ctx.stroke()
+      ctx.restore()
+    }
 
-        const deskGroup = new THREE.Group(); deskGroup.position.set(dx, 0, dz)
+    function drawCharacter(c: Char, t: number) {
+      const col = COL[c.name] ?? DEFAULT_COL
+      const { sx, sy } = iso(c.x, c.z)
+      const bobY = c.moving ? Math.abs(Math.sin(c.phase)) * 4 : Math.sin(c.phase * 0.35) * 2
+      const baseY = sy - bobY
 
-        // Desk top
-        const top = new THREE.Mesh(
-          new THREE.BoxGeometry(1.5, 0.08, 1.0),
-          new THREE.MeshStandardMaterial({ color: 0x1e3050, roughness: 0.55, metalness: 0.3 })
-        )
-        top.position.y = 0.24; top.castShadow = true; top.receiveShadow = true
-        deskGroup.add(top)
+      // Glow ring on floor
+      const gAlpha = c.online ? 0.35 + Math.sin(c.pulse + t * 0.05) * 0.15 : 0.08
+      ctx.save()
+      ctx.globalAlpha = gAlpha
+      ctx.shadowColor = col; ctx.shadowBlur = 20
+      const rg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 18)
+      rg.addColorStop(0, glowColor(col, 0.5))
+      rg.addColorStop(1, glowColor(col, 0))
+      ctx.fillStyle = rg
+      ctx.beginPath(); ctx.ellipse(sx, sy, 18, 9, 0, 0, Math.PI * 2); ctx.fill()
+      ctx.restore()
 
-        // Colored accent edge
-        const acc = new THREE.Mesh(
-          new THREE.BoxGeometry(1.5, 0.025, 0.035),
-          new THREE.MeshStandardMaterial({ color: c.num, emissive: c.num, emissiveIntensity: a.isOnline ? 4.0 : 1.5 })
-        )
-        acc.position.set(0, 0.265, 0.5175); deskGroup.add(acc)
+      // Body (diamond shape)
+      const bh = 22; const bw = 8
+      ctx.save()
+      ctx.shadowColor = col; ctx.shadowBlur = c.online ? 18 : 6
+      ctx.fillStyle = col
+      ctx.globalAlpha = c.online ? 0.95 : 0.45
+      ctx.beginPath()
+      ctx.moveTo(sx, baseY - bh)
+      ctx.lineTo(sx + bw, baseY - bh * 0.5)
+      ctx.lineTo(sx, baseY)
+      ctx.lineTo(sx - bw, baseY - bh * 0.5)
+      ctx.closePath()
+      ctx.fill()
+      ctx.restore()
 
-        // Legs
-        for (const [lx, lz] of [[-0.62, -0.42], [0.62, -0.42], [-0.62, 0.42], [0.62, 0.42]]) {
-          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 0.06),
-            new THREE.MeshStandardMaterial({ color: 0x1a2a40 }))
-          leg.position.set(lx, 0.11, lz); deskGroup.add(leg)
-        }
+      // Head circle
+      const headY = baseY - bh - 7
+      ctx.save()
+      ctx.shadowColor = col; ctx.shadowBlur = c.online ? 14 : 4
+      ctx.fillStyle = c.online ? col : '#1e3060'
+      ctx.globalAlpha = c.online ? 1.0 : 0.5
+      ctx.beginPath(); ctx.arc(sx, headY, 6, 0, Math.PI * 2); ctx.fill()
+      // emoji-like inner dot
+      ctx.fillStyle = 'rgba(0,0,0,0.4)'
+      ctx.beginPath(); ctx.arc(sx, headY, 3, 0, Math.PI * 2); ctx.fill()
+      ctx.restore()
 
-        // Monitor
-        const mon = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.56, 0.05),
-          new THREE.MeshStandardMaterial({ color: 0x080f1c, roughness: 0.2, metalness: 0.6 }))
-        mon.position.set(0, 0.56, -0.22); mon.castShadow = true; deskGroup.add(mon)
+      // Label
+      const labelY = headY - 14
+      const label = `${c.emoji} ${c.name}`
+      ctx.save()
+      ctx.font = `bold 9px ui-monospace, monospace`
+      ctx.textAlign = 'center'
+      const tw = ctx.measureText(label).width
+      ctx.fillStyle = 'rgba(2,5,14,0.88)'
+      ctx.globalAlpha = c.online ? 0.95 : 0.5
+      ctx.beginPath()
+      ctx.roundRect(sx - tw / 2 - 5, labelY - 10, tw + 10, 13, 4)
+      ctx.fill()
+      ctx.strokeStyle = glowColor(col, c.online ? 0.5 : 0.15)
+      ctx.lineWidth = 0.8
+      ctx.stroke()
+      ctx.fillStyle = c.online ? col : '#3a5080'
+      ctx.fillText(label, sx, labelY - 1)
+      ctx.restore()
 
-        // Screen
-        const scr = new THREE.Mesh(new THREE.BoxGeometry(0.71, 0.45, 0.01),
-          new THREE.MeshStandardMaterial({
-            color: a.isOnline ? c.num : 0x1a2e50,
-            emissive: a.isOnline ? c.num : 0x0d1f40,
-            emissiveIntensity: a.isOnline ? 4.0 : 1.0,
-          }))
-        scr.position.set(0, 0.56, -0.197); deskGroup.add(scr)
-        if (a.isOnline) {
-          const sl = new THREE.PointLight(c.num, 3.5, 5.0)
-          sl.position.set(0, 0.56, -0.1); deskGroup.add(sl)
-        }
+      // Speech bubble
+      if (c.bubbleTimer > 0 && c.bubble) {
+        const fade = Math.min(1, c.bubbleTimer / 30)
+        const bText = c.bubble.slice(0, 28)
+        ctx.save()
+        ctx.globalAlpha = fade * 0.9
+        ctx.font = '8px ui-monospace, monospace'
+        ctx.textAlign = 'left'
+        const bw2 = ctx.measureText(bText).width
+        const bx = sx - bw2 / 2 - 5; const by = labelY - 26
+        ctx.fillStyle = 'rgba(2,6,18,0.93)'
+        ctx.strokeStyle = glowColor(col, 0.5)
+        ctx.lineWidth = 0.7
+        ctx.beginPath(); ctx.roundRect(bx, by, bw2 + 10, 12, 3); ctx.fill(); ctx.stroke()
+        ctx.fillStyle = '#aabbee'
+        ctx.fillText(bText, bx + 5, by + 9)
+        ctx.restore()
+      }
+    }
 
-        // Stand
-        deskGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.06),
-          new THREE.MeshStandardMaterial({ color: 0x2a3a50 })), { position: new (THREE.Vector3)(0, 0.38, -0.22) }))
+    function drawDesk(x: number, z: number, col: string, isOnline: boolean) {
+      const gAlpha = isOnline ? 0.9 : 0.55
+      const dw = 1.0; const dd = 0.7
+      // Desk surface
+      drawBox(x - dw / 2, z - dd / 2, dw, dd, 10,
+        '#1a2d4a', '#0f1e30', '#111d2e', isOnline ? col : undefined)
 
-        // Keyboard
-        deskGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.018, 0.24),
-          new THREE.MeshStandardMaterial({ color: 0x101e30, roughness: 0.9 })), { position: new (THREE.Vector3)(0, 0.278, 0.18) }))
+      // Monitor
+      const mx = x; const mz = z - 0.15; const mh = 20
+      const { sx: msx, sy: msy } = iso(mx, mz)
+      ctx.save()
+      ctx.shadowColor = col; ctx.shadowBlur = isOnline ? 20 : 6
+      ctx.fillStyle = col
+      ctx.globalAlpha = isOnline ? gAlpha : 0.3
+      ctx.fillRect(msx - 14, msy - mh - 10, 28, 18)
+      // Screen glow inner
+      ctx.globalAlpha = isOnline ? 0.25 : 0.05
+      ctx.fillStyle = col
+      ctx.fillRect(msx - 11, msy - mh - 8, 22, 14)
+      ctx.restore()
 
-        // Chair
-        const chMat = new THREE.MeshStandardMaterial({ color: 0x0c1a2e, roughness: 0.95 })
-        deskGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.065, 0.65), chMat), { position: new (THREE.Vector3)(0, 0.235, 0.75) }))
-        deskGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.52, 0.055), chMat), { position: new (THREE.Vector3)(0, 0.495, 1.08) }))
+      // Desk accent line (LED strip)
+      const { sx: ax1, sy: ay1 } = iso(x - dw / 2, z + dd / 2)
+      const { sx: ax2, sy: ay2 } = iso(x + dw / 2, z + dd / 2)
+      ctx.save()
+      ctx.shadowColor = col; ctx.shadowBlur = isOnline ? 12 : 4
+      ctx.strokeStyle = isOnline ? col : glowColor(col, 0.35)
+      ctx.lineWidth = 2
+      ctx.globalAlpha = isOnline ? 0.95 : 0.5
+      ctx.beginPath(); ctx.moveTo(ax1, ay1 - 10); ctx.lineTo(ax2, ay2 - 10); ctx.stroke()
+      ctx.restore()
+    }
 
-        scene.add(deskGroup)
-      })
+    function drawConferenceRoom(t: number, meetActive: boolean) {
+      const cx = CONF_CX; const cz = CONF_CZ
+      const roomCol = '#4488ff'
+      const activeCol = '#8866ff'
+      const col = meetActive ? activeCol : roomCol
+      const pulse = meetActive ? (0.6 + Math.sin(t * 0.08) * 0.4) : 0.4
 
-      // ── Conference room ────────────────────────────────────
       // Floor
-      const cfFloor = new THREE.Mesh(new THREE.PlaneGeometry(CONF_W, CONF_D),
-        new THREE.MeshStandardMaterial({ color: 0x0d1e36, roughness: 0.85 }))
-      cfFloor.rotation.x = -Math.PI / 2
-      cfFloor.position.set(CONF_CX, 0.004, CONF_CZ); cfFloor.receiveShadow = true
-      scene.add(cfFloor)
+      drawFloor(CONF_X, CONF_Z, CONF_W, CONF_D, '#080e1e', 0.98)
 
-      // Glass walls
-      const glassMat = new THREE.MeshPhysicalMaterial({
-        color: 0xaaccff, transparent: true, opacity: 0.35,
-        roughness: 0.0, metalness: 0.1, side: THREE.DoubleSide,
-        emissive: 0x2244aa, emissiveIntensity: 0.4,
-      })
-      const wallSpecs: { pos: [number,number,number]; size: [number,number,number] }[] = [
-        { pos: [CONF_X + CONF_W, 0.75, CONF_Z + CONF_D * 0.22], size: [0.05, 1.5, CONF_D * 0.42] },
-        { pos: [CONF_X + CONF_W, 0.75, CONF_Z + CONF_D * 0.78], size: [0.05, 1.5, CONF_D * 0.42] },
-        { pos: [CONF_X, 0.75, CONF_CZ], size: [0.05, 1.5, CONF_D] },
-        { pos: [CONF_CX, 0.75, CONF_Z], size: [CONF_W, 1.5, 0.05] },
-        { pos: [CONF_CX, 0.75, CONF_Z + CONF_D], size: [CONF_W, 1.5, 0.05] },
+      // Floor grid lines
+      for (let gx = CONF_X; gx <= CONF_X + CONF_W; gx++) {
+        drawIsoLine(gx, CONF_Z, gx, CONF_Z + CONF_D, 0, glowColor(col, 0.08), 0)
+      }
+      for (let gz = CONF_Z; gz <= CONF_Z + CONF_D; gz++) {
+        drawIsoLine(CONF_X, gz, CONF_X + CONF_W, gz, 0, glowColor(col, 0.08), 0)
+      }
+
+      // Walls (neon edges)
+      const corners = [
+        [CONF_X, CONF_Z], [CONF_X + CONF_W, CONF_Z],
+        [CONF_X + CONF_W, CONF_Z + CONF_D], [CONF_X, CONF_Z + CONF_D],
       ]
-      wallSpecs.forEach(({ pos, size }) => {
-        const w = new THREE.Mesh(new THREE.BoxGeometry(...size), glassMat)
-        w.position.set(...pos); scene.add(w)
+      const wallH = 28
+      ctx.save()
+      ctx.shadowColor = col; ctx.shadowBlur = 14 * pulse
+      ctx.strokeStyle = col; ctx.lineWidth = 1.5
+      ctx.globalAlpha = pulse
+      // Vertical edges
+      corners.forEach(([wx, wz]) => {
+        const { sx, sy } = iso(wx, wz)
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx, sy - wallH); ctx.stroke()
       })
+      // Top rectangle
+      ctx.beginPath()
+      for (let i = 0; i < corners.length; i++) {
+        const [wx, wz] = corners[i]
+        const { sx, sy } = iso(wx, wz)
+        if (i === 0) ctx.moveTo(sx, sy - wallH)
+        else ctx.lineTo(sx, sy - wallH)
+      }
+      ctx.closePath(); ctx.stroke()
+      // Bottom rectangle
+      ctx.beginPath()
+      for (let i = 0; i < corners.length; i++) {
+        const [wx, wz] = corners[i]
+        const { sx, sy } = iso(wx, wz)
+        if (i === 0) ctx.moveTo(sx, sy)
+        else ctx.lineTo(sx, sy)
+      }
+      ctx.closePath(); ctx.stroke()
+      ctx.restore()
 
-      // Glowing edge lines
-      const edgeMat = new THREE.LineBasicMaterial({ color: 0x4488ff, linewidth: 2 })
-      const corners: [number, number][] = [[CONF_X, CONF_Z], [CONF_X + CONF_W, CONF_Z], [CONF_X + CONF_W, CONF_Z + CONF_D], [CONF_X, CONF_Z + CONF_D]]
-      corners.forEach(([ex, ez]) => {
-        const pts = [new THREE.Vector3(ex, 0, ez), new THREE.Vector3(ex, 1.5, ez)]
-        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat))
-      })
-      for (const ey of [0, 1.5]) {
-        const pts = [...corners, corners[0]].map(([ex, ez]) => new THREE.Vector3(ex, ey, ez))
-        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat))
+      // Central table
+      const tw = 1.8; const td = 3.5
+      drawBox(cx - tw / 2, cz - td / 2, tw, td, 8, '#1a2e50', '#0e1c34', '#0f1d38', col)
+
+      // Table glow ring (animated when active)
+      const { sx: tSx, sy: tSy } = iso(cx, cz)
+      const ringSize = 30 + (meetActive ? Math.sin(t * 0.1) * 5 : 0)
+      ctx.save()
+      ctx.globalAlpha = pulse * 0.5
+      ctx.shadowColor = col; ctx.shadowBlur = 24
+      ctx.strokeStyle = col; ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.ellipse(tSx, tSy - 8, ringSize * 1.1, ringSize * 0.55, 0, 0, Math.PI * 2)
+      ctx.stroke()
+      if (meetActive) {
+        ctx.globalAlpha = pulse * 0.25
+        ctx.beginPath()
+        ctx.ellipse(tSx, tSy - 8, ringSize * 1.5, ringSize * 0.75, 0, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+      ctx.restore()
+
+      // CONFERENCE label
+      const labelPos = iso(CONF_X + CONF_W / 2, CONF_Z - 0.3)
+      ctx.save()
+      ctx.font = 'bold 10px ui-monospace, monospace'
+      ctx.textAlign = 'center'
+      ctx.fillStyle = meetActive ? activeCol : '#2a4a88'
+      ctx.shadowColor = col; ctx.shadowBlur = meetActive ? 16 : 4
+      ctx.globalAlpha = meetActive ? 0.95 : 0.6
+      ctx.fillText(meetActive ? '● MEETING' : '○ CONF ROOM', labelPos.sx, labelPos.sy - 35)
+      ctx.restore()
+    }
+
+    function drawOfficeFloor() {
+      const deskMap2 = buildLayout(agentsRef.current)
+      const allX2 = Object.values(deskMap2).map(d => d.x)
+      const allZ2 = Object.values(deskMap2).map(d => d.z)
+      const fx1 = Math.min(...allX2) - 1.5
+      const fx2 = Math.max(...allX2) + 2
+      const fz1 = Math.min(...allZ2) - 1.5
+      const fz2 = Math.max(...allZ2) + 2
+
+      // Floor base
+      drawFloor(fx1, fz1, fx2 - fx1, fz2 - fz1, '#070c18', 0.95)
+
+      // Grid
+      const gridCol = 'rgba(15,35,70,0.6)'
+      for (let gx = Math.floor(fx1); gx <= Math.ceil(fx2); gx++) {
+        drawIsoLine(gx, fz1, gx, fz2, 0, gridCol, 0)
+      }
+      for (let gz = Math.floor(fz1); gz <= Math.ceil(fz2); gz++) {
+        drawIsoLine(fx1, gz, fx2, gz, 0, gridCol, 0)
       }
 
-      // Table
-      const tbl = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 0.1, 32),
-        new THREE.MeshStandardMaterial({ color: 0x1a2e50, roughness: 0.25, metalness: 0.5 }))
-      tbl.position.set(CONF_CX, 0.25, CONF_CZ); tbl.castShadow = true; scene.add(tbl)
-
-      // Table rim
-      ringMesh = new THREE.Mesh(new THREE.TorusGeometry(1.7, 0.05, 8, 64),
-        new THREE.MeshStandardMaterial({ color: 0x6688ff, emissive: 0x4466ff, emissiveIntensity: 3.0 }))
-      ringMesh.rotation.x = -Math.PI / 2; ringMesh.position.set(CONF_CX, 0.31, CONF_CZ); scene.add(ringMesh)
-
-      // Hologram above table (torus rings, hidden by default)
-      hologram = new THREE.Group(); hologram.position.set(CONF_CX, 0.8, CONF_CZ); hologram.visible = false
-      for (let i = 0; i < 3; i++) {
-        const hr = new THREE.Mesh(new THREE.TorusGeometry(0.5 + i * 0.3, 0.02, 6, 32),
-          new THREE.MeshStandardMaterial({ color: 0x6688ff, emissive: 0x4466ff, emissiveIntensity: 1.5, transparent: true, opacity: 0.7 }))
-        hr.rotation.x = Math.PI / 2 + i * 0.4; hologram.add(hr)
+      // Row accent strips
+      const maxRow = Math.max(...Object.values(deskMap2).map(d => d.row))
+      for (let r = 0; r <= maxRow; r++) {
+        const rz = 1.5 + r * 3.5
+        drawFloor(fx1 + 1, rz - 0.6, fx2 - fx1 - 2, 1.2, 'rgba(12,25,50,0.7)', 0.7)
       }
-      scene.add(hologram)
+    }
 
-      // Overhead conf light
-      confLight = new THREE.PointLight(0x8899ff, 0, 12); confLight.position.set(CONF_CX, 4, CONF_CZ)
-      scene.add(confLight)
+    function tick() {
+      rafId = requestAnimationFrame(tick)
+      const t = ++tickRef.current
+      const chars = charsRef.current
+      const meet = meetRef.current
+      const deskMap2 = buildLayout(agentsRef.current)
 
-      // Wall-mounted screens inside conf room
-      for (let i = 0; i < 2; i++) {
-        const scrPanel = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 0.05),
-          new THREE.MeshStandardMaterial({ color: 0x0a1428, emissive: 0x0a2060, emissiveIntensity: 0.3 }))
-        scrPanel.position.set(CONF_CX, 1.0, CONF_Z + 0.1 + i * (CONF_D - 0.2))
-        scene.add(scrPanel)
-      }
-
-      // Chairs around table
-      CONF_SEATS.forEach(seat => {
-        const ch = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 8),
-          new THREE.MeshStandardMaterial({ color: 0x0f1e32, roughness: 0.95 }))
-        ch.position.set(seat.x, 0.23, seat.z); scene.add(ch)
+      // Sync agent status
+      const cur = agentsRef.current
+      chars.forEach(c => {
+        const a = cur.find(x => x.id === c.id)
+        if (a) { c.online = a.isOnline; c.available = a.isAvailable; c.lastAction = a.lastAction }
+        c.pulse += 0.03
       })
 
-      // ── Characters ─────────────────────────────────────────
-      charsRef.current.forEach(c => {
-        const ag = initAgents.find(a => a.id === c.id)
-        const col = COL[c.name] ?? DEFAULT_COL
-        const grp = new THREE.Group(); grp.position.set(c.x, 0, c.z)
-
-        // Body
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.15, 0.5, 12),
-          new THREE.MeshStandardMaterial({
-            color: col.num, roughness: 0.3, metalness: 0.1,
-            emissive: col.num, emissiveIntensity: ag?.isOnline ? 2.0 : 0.6,
-          }))
-        body.position.y = 0.35; body.castShadow = true; grp.add(body)
-
-        // Head
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 10),
-          new THREE.MeshStandardMaterial({ color: 0xf0d5b8, roughness: 0.65 }))
-        head.position.y = 0.84; head.castShadow = true; grp.add(head)
-
-        // Hair
-        const hair = new THREE.Mesh(
-          new THREE.SphereGeometry(0.23, 14, 8, 0, Math.PI * 2, 0, 1.05),
-          new THREE.MeshStandardMaterial({ color: col.num, roughness: 0.85 }))
-        hair.position.y = 0.85; grp.add(hair)
-
-        // Eyes
-        for (const ex of [-0.08, 0.08]) {
-          const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 5),
-            new THREE.MeshStandardMaterial({ color: 0x0a0a0a }))
-          eye.position.set(ex, 0.86, 0.19); grp.add(eye)
+      // Meeting trigger
+      const manual = triggerRef.current; if (manual) triggerRef.current = false
+      if (!meet.active && (manual || t % 1400 === 0)) {
+        const theo = chars.find(c => c.name === 'Theo' && (c.online || manual)) ?? chars.find(c => c.online) ?? chars[0]
+        if (theo) {
+          const avail = chars.filter(c => c.id !== theo.id && c.available && c.state === 'at_desk')
+          const cnt = Math.min(1 + Math.floor(Math.random() * 4), avail.length)
+          const invited = avail.sort(() => Math.random() - 0.5).slice(0, cnt)
+          const all = [theo, ...invited]
+          meet.active = true; meet.participants = all.map(c => c.id)
+          meet.timer = 600 + Math.floor(Math.random() * 400)
+          meet.announce = `📢 ${theo.name} → ${invited.length ? invited.map(c => c.name).join(', ') : 'solo'}`
+          meet.announceTick = 240
+          setAnnounce(meet.announce); setConfOn(true); onMeetingChange?.(true)
+          all.forEach((c, i) => {
+            c.state = 'going_to_meeting'; c.seatIdx = i % CONF_SEATS.length
+            c.tx = CONF_ENTRY_X; c.tz = c.deskZ; c.timer = 999
+            c.bubble = '📅 Meeting!'; c.bubbleTimer = 120
+          })
         }
+      }
 
-        // Glow light
-        const lite = new THREE.PointLight(col.num, ag?.isOnline ? 4.0 : 0.5, 4.0)
-        lite.position.y = 0.4; grp.add(lite)
+      if (meet.active) {
+        meet.timer--
+        if (meet.announceTick > 0 && --meet.announceTick === 0) { meet.announce = ''; setAnnounce('') }
+        if (meet.timer <= 0) {
+          meet.participants.forEach(id => {
+            const c = chars.find(x => x.id === id)
+            if (c) { c.state = 'to_desk'; c.tx = c.deskX; c.tz = c.deskZ; c.timer = 500; c.bubble = '✅ Done!'; c.bubbleTimer = 90 }
+          })
+          meet.active = false; meet.participants = []
+          setConfOn(false); onMeetingChange?.(false)
+        }
+      }
 
-        scene.add(grp)
-
-        // HTML label
-        const lbl = document.createElement('div')
-        lbl.style.cssText = `position:absolute;pointer-events:none;transform:translate(-50%,0);
-          background:rgba(4,8,18,0.93);border:1px solid ${col.hex}66;
-          color:${ag?.isOnline ? col.hex : '#5a7ab0'};
-          font:600 9px/1.4 ui-monospace,monospace;padding:2px 7px;border-radius:6px;
-          white-space:nowrap;box-shadow:${ag?.isOnline ? `0 0 10px ${col.hex}88` : 'none'};
-          opacity:${ag?.isOnline ? '1' : '0.6'}`
-        lbl.textContent = `${c.emoji} ${c.name}`
-        labelsRef.current?.appendChild(lbl)
-
-        charMeshes.set(c.id, { grp, body, lite, lbl })
-      })
-
-      // ── Plants ─────────────────────────────────────────────
-      const plantSpots: [number, number][] = [
-        [CONF_X - 0.8, CONF_Z - 0.8],
-        [CONF_X - 0.8, CONF_Z + CONF_D + 0.8],
-        [maxX + 1.5, 0.8],
-        [maxX + 1.5, maxZ],
-      ]
-      plantSpots.forEach(([px, pz]) => {
-        const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.3, 8),
-          new THREE.MeshStandardMaterial({ color: 0x6b3a1f, roughness: 1 }))
-        pot.position.set(px, 0.15, pz); pot.castShadow = true; scene.add(pot)
-        const pl = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6),
-          new THREE.MeshStandardMaterial({ color: 0x1a5e30, roughness: 1 }))
-        pl.position.set(px, 0.52, pz); scene.add(pl)
-      })
-
-      // ── Tick ───────────────────────────────────────────────
-      const tick = () => {
-        rafId = requestAnimationFrame(tick)
-        const n = ++tickRef.current
-        const chars = charsRef.current
-        const meet = meetRef.current
-
-        // Sync status
-        const cur = agentsRef.current
-        chars.forEach(c => {
-          const a = cur.find(x => x.id === c.id)
-          if (a) { c.online = a.isOnline; c.available = a.isAvailable; c.lastAction = a.lastAction }
-        })
-
-        const manual = triggerRef.current; if (manual) triggerRef.current = false
-        if (!meet.active && (manual || n % 1400 === 0)) {
-          const theo = chars.find(c => c.name === 'Theo' && (c.online || manual)) ?? chars.find(c => c.online) ?? chars[0]
-          if (theo) {
-            const avail = chars.filter(c => c.id !== theo.id && c.available && c.state === 'at_desk')
-            const cnt = Math.min(1 + Math.floor(Math.random() * 4), avail.length)
-            const invited = avail.sort(() => Math.random() - 0.5).slice(0, cnt)
-            const all = [theo, ...invited]
-            meet.active = true; meet.participants = all.map(c => c.id)
-            meet.timer = 600 + Math.floor(Math.random() * 400)
-            meet.announce = `📢 ${theo.name} → ${invited.length ? invited.map(c => c.name).join(', ') : 'solo'}`
-            meet.announceTick = 240
-            setAnnounce(meet.announce); setConfOn(true); onMeetingChange?.(true)
-            if (confLight) confLight.intensity = 4
-            if (hologram) hologram.visible = true
-            all.forEach((c, i) => {
-              c.state = 'going_to_meeting'; c.seatIdx = i % CONF_SEATS.length
-              c.tx = CONF_ENTRY_X; c.tz = c.deskZ; c.timer = 999
-              c.bubble = '📅 Meeting!'; c.bubbleTimer = 120
-            })
+      // Character AI
+      chars.forEach(c => {
+        if (c.state === 'in_meeting') {
+          c.phase += 0.025
+          const seat = CONF_SEATS[c.seatIdx] ?? CONF_SEATS[0]
+          c.x = seat.x; c.z = seat.z + Math.sin(c.phase) * 0.01
+        } else {
+          c.timer--
+          if (c.timer <= 0) {
+            const d = deskMap2[c.name]
+            if (c.state === 'at_desk' && !meet.participants.includes(c.id)) {
+              if (c.online && Math.random() < 0.28) {
+                const rz = (d?.z ?? 1.5)
+                c.tx = (d?.x ?? CONF_W + 3) + (Math.random() - 0.5) * 2.5
+                c.tz = rz + (Math.random() - 0.5) * 1.0
+                c.state = 'wandering'; c.timer = 90 + Math.random() * 120
+              } else { c.timer = 150 + Math.random() * 200 }
+            } else if (c.state === 'wandering') {
+              c.tx = c.deskX; c.tz = c.deskZ; c.state = 'to_desk'; c.timer = 500
+            } else if (c.state === 'to_desk') { c.timer = 500 }
+            if (c.online && c.lastAction && Math.random() < 0.07) {
+              c.bubble = c.lastAction.slice(0, 40); c.bubbleTimer = 180
+            }
           }
-        }
-
-        if (meet.active) {
-          meet.timer--
-          if (meet.announceTick > 0 && --meet.announceTick === 0) { meet.announce = ''; setAnnounce('') }
-          if (hologram) { hologram.children.forEach((h: any, i: number) => { h.rotation.z = n * 0.02 + i * 1.2 }) }
-          if (meet.timer <= 0) {
-            meet.participants.forEach(id => {
-              const c = chars.find(x => x.id === id)
-              if (c) { c.state = 'to_desk'; c.tx = c.deskX; c.tz = c.deskZ; c.timer = 500; c.bubble = '✅ Done!'; c.bubbleTimer = 90 }
-            })
-            meet.active = false; meet.participants = []
-            setConfOn(false); onMeetingChange?.(false)
-            if (confLight) confLight.intensity = 0
-            if (hologram) hologram.visible = false
+          if (c.state === 'to_desk' && Math.abs(c.x - c.deskX) < 0.08 && Math.abs(c.z - c.deskZ) < 0.08) {
+            c.state = 'at_desk'; c.timer = 150 + Math.random() * 200; c.x = c.deskX; c.z = c.deskZ
           }
-        }
-
-        if (ringMesh) (ringMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = meet.active ? 3.0 + Math.sin(n * 0.06) * 1.5 : 1.5
-
-        chars.forEach(c => {
-          const m = charMeshes.get(c.id)
-          if (c.state === 'in_meeting') {
-            c.phase += 0.025
+          if (c.state === 'going_to_meeting' && Math.abs(c.x - CONF_ENTRY_X) < 0.12) {
             const seat = CONF_SEATS[c.seatIdx] ?? CONF_SEATS[0]
-            c.x = seat.x; c.z = seat.z + Math.sin(c.phase) * 0.012
+            c.state = 'in_meeting'; c.x = seat.x; c.z = seat.z; c.tx = seat.x; c.tz = seat.z
+          }
+          const dx = c.tx - c.x; const dz = c.tz - c.z
+          const dist = Math.sqrt(dx * dx + dz * dz)
+          const spd = (c.online || c.state === 'going_to_meeting' || c.state === 'to_desk') ? 0.04 : 0
+          if (dist > 0.04 && spd > 0) {
+            c.x += dx / dist * spd; c.z += dz / dist * spd
+            c.facing = Math.atan2(dx, dz); c.moving = true; c.phase += 0.14
           } else {
-            c.timer--
-            if (c.timer <= 0) {
-              if (c.state === 'at_desk' && !meet.participants.includes(c.id)) {
-                if (c.online && Math.random() < 0.28) {
-                  const L = deskMap[c.name]; const row = L?.row ?? 0
-                  const rz = 1.8 + row * 4.5
-                  c.tx = CONF_W + 3 + Math.random() * (maxX - CONF_W - 1)
-                  c.tz = rz + (Math.random() - 0.5) * 1.2
-                  c.state = 'wandering'; c.timer = 90 + Math.random() * 130
-                } else { c.timer = 160 + Math.random() * 220 }
-              } else if (c.state === 'wandering') {
-                c.tx = c.deskX; c.tz = c.deskZ; c.state = 'to_desk'; c.timer = 500
-              } else if (c.state === 'to_desk') { c.timer = 500 }
-              if (c.online && c.lastAction && Math.random() < 0.07) {
-                c.bubble = c.lastAction.slice(0, 52); c.bubbleTimer = 180
-              }
-            }
-            if (c.state === 'to_desk' && Math.abs(c.x - c.deskX) < 0.1 && Math.abs(c.z - c.deskZ) < 0.1) {
-              c.state = 'at_desk'; c.timer = 160 + Math.random() * 260; c.x = c.deskX; c.z = c.deskZ
-            }
-            if (c.state === 'going_to_meeting' && Math.abs(c.x - CONF_ENTRY_X) < 0.15) {
-              const seat = CONF_SEATS[c.seatIdx] ?? CONF_SEATS[0]
-              c.state = 'in_meeting'; c.x = seat.x; c.z = seat.z; c.tx = seat.x; c.tz = seat.z
-            }
-            const dx = c.tx - c.x, dz = c.tz - c.z
-            const dist = Math.sqrt(dx * dx + dz * dz)
-            const spd = (c.online || c.state === 'going_to_meeting' || c.state === 'to_desk') ? 0.044 : 0
-            if (dist > 0.04 && spd > 0) {
-              c.x += dx / dist * spd; c.z += dz / dist * spd
-              c.facing = Math.atan2(dx, dz); c.moving = true; c.phase += 0.14
-            } else {
-              c.moving = false
-              if (c.online) c.phase += 0.04
-            }
+            c.moving = false
+            if (c.online) c.phase += 0.03
           }
-          if (c.bubbleTimer > 0) c.bubbleTimer--
-
-          if (m) {
-            m.grp.position.x = c.x; m.grp.position.z = c.z
-            m.grp.rotation.y = c.facing
-            m.grp.position.y = c.moving ? Math.abs(Math.sin(c.phase)) * 0.1 : Math.sin(c.phase * 0.35) * 0.024
-            if (c.moving) m.body.rotation.z = Math.sin(c.phase) * 0.12
-            else m.body.rotation.z *= 0.88
-            m.lite.intensity += ((c.online ? 4.0 : 0.5) - m.lite.intensity) * 0.05
-
-            // Project label
-            const v = new THREE.Vector3(c.x, 1.28, c.z).project(camera)
-            m.lbl.style.left = ((v.x * 0.5 + 0.5) * W) + 'px'
-            m.lbl.style.top = ((-v.y * 0.5 + 0.5) * H - 5) + 'px'
-            m.lbl.style.display = v.z < 1 ? 'block' : 'none'
-          }
-        })
-
-        if (n % 300 === 0) {
-          const pool = chars.filter(c => c.online && c.lastAction && c.state !== 'in_meeting')
-          if (pool.length) { const c = pool[Math.floor(Math.random() * pool.length)]; c.bubble = c.lastAction!.slice(0, 52); c.bubbleTimer = 200 }
         }
+        if (c.bubbleTimer > 0) c.bubbleTimer--
+      })
 
-        renderer!.render(scene, camera)
+      // ── RENDER ─────────────────────────────────────────────────────────────
+      ctx.clearRect(0, 0, W, H)
+
+      // Background gradient
+      const bg = ctx.createLinearGradient(0, 0, 0, H)
+      bg.addColorStop(0, '#040b18')
+      bg.addColorStop(1, '#020810')
+      ctx.fillStyle = bg
+      ctx.fillRect(0, 0, W, H)
+
+      // Sort render order: back-to-front (isometric painter's algorithm)
+      // Render by z+x descending (objects with higher z+x closer to viewer)
+
+      // 1. Draw floors first
+      drawOfficeFloor()
+      drawConferenceRoom(t, meet.active)
+
+      // 2. Draw desks (back to front: sort by x+z descending)
+      const deskEntries = agentsRef.current.map(a => {
+        const d = deskMap2[a.name]
+        return d ? { a, d } : null
+      }).filter(Boolean) as { a: AgentStatus; d: { x: number; z: number } }[]
+
+      deskEntries.sort((a, b) => (a.d.x + a.d.z) - (b.d.x + b.d.z))
+      deskEntries.forEach(({ a, d }) => {
+        drawDesk(d.x, d.z, COL[a.name] ?? DEFAULT_COL, a.isOnline)
+      })
+
+      // 3. Draw characters (back to front)
+      const sortedChars = [...chars].sort((a, b) => (a.x + a.z) - (b.x + b.z))
+      sortedChars.forEach(c => drawCharacter(c, t))
+
+      // 4. Scanline overlay for CRT effect
+      ctx.save()
+      ctx.globalAlpha = 0.025
+      for (let y = 0; y < H; y += 3) {
+        ctx.fillStyle = '#000000'
+        ctx.fillRect(0, y, W, 1)
       }
-      tick()
+      ctx.restore()
     }
+    tick()
 
-    console.log('THREE available:', typeof THREE, Object.keys(THREE).slice(0,5))
-    try { init() } catch (e) { console.error('Three.js init error:', e, (e as Error).stack) }
-    return () => {
-      cancelAnimationFrame(rafId)
-      renderer?.dispose()
-      if (mountRef.current && renderer?.domElement?.parentNode === mountRef.current) mountRef.current.removeChild(renderer.domElement)
-      charMeshes.forEach(({ lbl }) => lbl.remove())
-      charMeshes.clear()
-    }
+    return () => { cancelAnimationFrame(rafId) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -555,8 +611,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
 
       <div className="relative rounded-2xl overflow-hidden border border-zinc-800/50 w-full"
         style={{ boxShadow: '0 0 80px rgba(10,20,60,0.9), inset 0 0 0 1px rgba(60,80,160,0.1)' }}>
-        <div ref={mountRef} className="w-full" style={{ lineHeight: 0 }} />
-        <div ref={labelsRef} className="absolute inset-0 pointer-events-none" />
+        <canvas ref={canvasRef} style={{ display: 'block', width: '100%' }} />
 
         <div className="absolute top-3 right-3 pointer-events-none">
           <div className="px-3 py-1.5 rounded-xl text-xs font-bold tracking-wider" style={{
@@ -570,7 +625,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         </div>
 
         {selected && (() => {
-          const a = selected; const col = COL[a.name]?.hex ?? '#6366f1'
+          const a = selected; const col = COL[a.name] ?? '#6366f1'
           return (
             <div className="absolute bottom-3 left-3 rounded-2xl p-4 w-56" style={{
               background: 'rgba(5,9,20,0.97)', border: `1px solid ${col}44`,
@@ -600,7 +655,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
 
       <div className="flex flex-wrap gap-2 mt-3">
         {agents.map(a => {
-          const col = COL[a.name]?.hex ?? '#6366f1'
+          const col = COL[a.name] ?? '#6366f1'
           return (
             <button key={a.id} onClick={() => setSelected(s => s?.id === a.id ? null : a)}
               className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all"
