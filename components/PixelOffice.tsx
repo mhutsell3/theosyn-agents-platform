@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import * as THREE from 'three'
 import type { AgentStatus } from '@/lib/agents'
 
 const COL: Record<string, { num: number; hex: string }> = {
@@ -115,14 +116,15 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       }
     })
 
-    let THREE: any, renderer: any, scene: any, camera: any
+    let renderer: THREE.WebGLRenderer | null = null
+    let scene: THREE.Scene, camera: THREE.OrthographicCamera
     let rafId: number
-    const charMeshes = new Map<string, { grp: any; body: any; lite: any; lbl: HTMLDivElement }>()
-    let confLight: any, ringMesh: any, hologram: any
+    const charMeshes = new Map<string, { grp: THREE.Group; body: THREE.Mesh; lite: THREE.PointLight; lbl: HTMLDivElement }>()
+    let confLight: THREE.PointLight | null = null
+    let ringMesh: THREE.Mesh | null = null
+    let hologram: THREE.Group | null = null
 
-    const init = async () => {
-      THREE = await import('three')
-
+    const init = () => {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
       renderer.setSize(W, H)
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -271,15 +273,11 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         color: 0x88aaff, transparent: true, opacity: 0.14,
         roughness: 0.0, side: THREE.DoubleSide,
       })
-      const wallSpecs = [
-        // right wall (entry side) - two halves with gap
+      const wallSpecs: { pos: [number,number,number]; size: [number,number,number] }[] = [
         { pos: [CONF_X + CONF_W, 0.75, CONF_Z + CONF_D * 0.22], size: [0.05, 1.5, CONF_D * 0.42] },
         { pos: [CONF_X + CONF_W, 0.75, CONF_Z + CONF_D * 0.78], size: [0.05, 1.5, CONF_D * 0.42] },
-        // left wall
         { pos: [CONF_X, 0.75, CONF_CZ], size: [0.05, 1.5, CONF_D] },
-        // front
         { pos: [CONF_CX, 0.75, CONF_Z], size: [CONF_W, 1.5, 0.05] },
-        // back
         { pos: [CONF_CX, 0.75, CONF_Z + CONF_D], size: [CONF_W, 1.5, 0.05] },
       ]
       wallSpecs.forEach(({ pos, size }) => {
@@ -458,7 +456,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
           }
         }
 
-        if (ringMesh) ringMesh.material.emissiveIntensity = meet.active ? 0.5 + Math.sin(n * 0.06) * 0.4 : 0.2
+        if (ringMesh) (ringMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = meet.active ? 0.5 + Math.sin(n * 0.06) * 0.4 : 0.2
 
         chars.forEach(c => {
           const m = charMeshes.get(c.id)
@@ -525,12 +523,12 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
           if (pool.length) { const c = pool[Math.floor(Math.random() * pool.length)]; c.bubble = c.lastAction!.slice(0, 52); c.bubbleTimer = 200 }
         }
 
-        renderer.render(scene, camera)
+        renderer!.render(scene, camera)
       }
       tick()
     }
 
-    init()
+    try { init() } catch (e) { console.error('Three.js init error:', e) }
     return () => {
       cancelAnimationFrame(rafId)
       renderer?.dispose()
