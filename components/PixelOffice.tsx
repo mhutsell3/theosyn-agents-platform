@@ -119,8 +119,9 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
 
     // Compute scene screen dimensions for centering
     const sceneScreenH = (sceneMaxX + sceneMaxZ) * (TILE_H / 2)
-    const originX = W / 2 - (sceneCX - sceneCZ) * (TILE_W / 2)
-    const originY = Math.max(35, (H - sceneScreenH) / 2)
+    // Shift X left by half scene width to reduce dead space top-left
+    const originX = W / 2 - (sceneCX - sceneCZ) * (TILE_W / 2) - (sceneMaxX - sceneMaxZ) * (TILE_W / 2) * 0.15
+    const originY = Math.max(30, (H - sceneScreenH) / 2 - 5)
     originRef.current = { x: originX, y: originY }
 
     charsRef.current = agentsRef.current.map(a => {
