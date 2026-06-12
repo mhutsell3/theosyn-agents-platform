@@ -103,7 +103,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
     const ctx: CanvasRenderingContext2D = ctxMaybe
 
     const W = container.clientWidth || 1280
-    const H = Math.round(W * 0.60)
+    const H = Math.min(Math.round(W * 0.42), 560)
     canvas.width = W; canvas.height = H
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
 
