@@ -758,7 +758,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
               style={{
                 background: selected?.id === a.id ? `${col}1a` : 'rgba(6,10,20,0.9)',
                 borderColor: `${col}${a.isOnline ? '55' : '40'}`,
-                color: a.isOnline ? col : '#8a9ab8',
+                color: a.isOnline ? col : '#cbd5e1',
                 boxShadow: a.isOnline && selected?.id === a.id ? `0 0 10px ${col}33` : 'none',
               }}>
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
