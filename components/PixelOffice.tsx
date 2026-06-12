@@ -530,7 +530,8 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       tick()
     }
 
-    try { init() } catch (e) { console.error('Three.js init error:', e) }
+    console.log('THREE available:', typeof THREE, Object.keys(THREE).slice(0,5))
+    try { init() } catch (e) { console.error('Three.js init error:', e, (e as Error).stack) }
     return () => {
       cancelAnimationFrame(rafId)
       renderer?.dispose()
