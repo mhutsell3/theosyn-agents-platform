@@ -15,7 +15,7 @@ export interface AgentStatus {
 
 export async function getAgentStatuses(): Promise<AgentStatus[]> {
   const [agents, heartbeats] = await Promise.all([
-    db`SELECT id, name, role, avatar_emoji, ollama_model, last_heartbeat FROM agents ORDER BY name ASC` as unknown as {
+    db`SELECT id, name, role, avatar_emoji, ollama_model, last_heartbeat FROM agents WHERE enabled = true ORDER BY name ASC` as unknown as {
       id: string; name: string; role: string; avatar_emoji: string
       ollama_model: string | null; last_heartbeat: string | null
     }[],
