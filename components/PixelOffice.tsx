@@ -459,28 +459,36 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       drawBox(x - dw / 2, z - dd / 2, dw, dd, 10,
         '#1a2d4a', '#0f1e30', '#111d2e', isOnline ? col : undefined)
 
-      // Monitor
-      const mx = x; const mz = z - 0.15; const mh = 20
-      const { sx: msx, sy: msy } = iso(mx, mz)
+      // Monitor — wide landscape screen sitting flat on desk (not tall, not humanoid)
+      const { sx: msx, sy: msy } = iso(x, z - 0.1)
+      const deskTopY = msy - 10  // top of desk surface
       ctx.save()
-      ctx.shadowColor = col; ctx.shadowBlur = isOnline ? 20 : 6
+      ctx.shadowColor = col; ctx.shadowBlur = isOnline ? 14 : 4
+      ctx.globalAlpha = isOnline ? 0.85 : 0.25
+      // Wide screen (landscape ratio: 32w × 10h) — clearly a monitor, not a person
+      ctx.fillStyle = '#0a1020'
+      ctx.fillRect(msx - 16, deskTopY - 12, 32, 11)
+      // Screen bezel border
+      ctx.strokeStyle = col; ctx.lineWidth = 1
+      ctx.strokeRect(msx - 16, deskTopY - 12, 32, 11)
+      // Screen glow content
+      ctx.globalAlpha = isOnline ? 0.5 : 0.1
       ctx.fillStyle = col
-      ctx.globalAlpha = isOnline ? gAlpha : 0.3
-      ctx.fillRect(msx - 14, msy - mh - 10, 28, 18)
-      // Screen glow inner
-      ctx.globalAlpha = isOnline ? 0.25 : 0.05
+      ctx.fillRect(msx - 13, deskTopY - 10, 26, 7)
+      // Monitor stand (tiny)
+      ctx.globalAlpha = isOnline ? 0.6 : 0.2
       ctx.fillStyle = col
-      ctx.fillRect(msx - 11, msy - mh - 8, 22, 14)
+      ctx.fillRect(msx - 3, deskTopY - 1, 6, 2)
       ctx.restore()
 
-      // Desk accent line (LED strip)
+      // Desk LED accent strip along front edge
       const { sx: ax1, sy: ay1 } = iso(x - dw / 2, z + dd / 2)
       const { sx: ax2, sy: ay2 } = iso(x + dw / 2, z + dd / 2)
       ctx.save()
-      ctx.shadowColor = col; ctx.shadowBlur = isOnline ? 12 : 4
-      ctx.strokeStyle = isOnline ? col : glowColor(col, 0.35)
-      ctx.lineWidth = 2
-      ctx.globalAlpha = isOnline ? 0.95 : 0.5
+      ctx.shadowColor = col; ctx.shadowBlur = isOnline ? 10 : 3
+      ctx.strokeStyle = isOnline ? col : glowColor(col, 0.3)
+      ctx.lineWidth = 1.5
+      ctx.globalAlpha = isOnline ? 0.9 : 0.4
       ctx.beginPath(); ctx.moveTo(ax1, ay1 - 10); ctx.lineTo(ax2, ay2 - 10); ctx.stroke()
       ctx.restore()
     }
