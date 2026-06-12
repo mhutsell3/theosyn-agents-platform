@@ -248,143 +248,107 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       ctx.beginPath(); ctx.ellipse(sx, sy, 16, 8, 0, 0, Math.PI * 2); ctx.fill()
       ctx.restore()
 
+      // ── Draw person ──────────────────────────────────────────
+      // Proportions: feet at baseY, total height ~36px
+      // Shoes → pants → shirt → neck → head → hair cap
+      const darkCol = `rgb(${Math.max(0,r-60)},${Math.max(0,g-60)},${Math.max(0,b-60)})`
+      const midCol  = `rgb(${Math.max(0,r-25)},${Math.max(0,g-25)},${Math.max(0,b-25)})`
+      const skin = c.online ? '#e8b88a' : '#6a7a8a'
+
+      // ── Shoes ──
       ctx.save()
       ctx.globalAlpha = alpha
-      ctx.shadowColor = col; ctx.shadowBlur = glowBlur
+      ctx.shadowColor = col; ctx.shadowBlur = glowBlur * 0.5
+      ctx.fillStyle = '#1a1a2e'
+      const lFootX = sx - 3 + (c.moving ? walkCycle * 2.5 : 0)
+      const rFootX = sx + 3 - (c.moving ? walkCycle * 2.5 : 0)
+      ctx.beginPath(); ctx.roundRect(lFootX - 3, baseY - 3, 5, 3, 1); ctx.fill()
+      ctx.beginPath(); ctx.roundRect(rFootX - 2, baseY - 3, 5, 3, 1); ctx.fill()
 
-      // Skin tone
-      const skin = c.online ? '#f5c9a0' : '#8090a8'
+      // ── Pants ── (dark version of color, two separate legs)
+      ctx.fillStyle = darkCol
+      const lLegY = c.moving ? walkCycle * 3 : 0
+      const rLegY = c.moving ? -walkCycle * 3 : 0
+      ctx.beginPath(); ctx.roundRect(sx - 5, baseY - 13 + lLegY * 0.3, 4, 11, 1); ctx.fill()
+      ctx.beginPath(); ctx.roundRect(sx + 1, baseY - 13 + rLegY * 0.3, 4, 11, 1); ctx.fill()
 
-      // Leg positions (walk cycle)
-      const legSwing = walkCycle * 3.5
-      const legY = baseY - 2
-
-      // Left leg
-      ctx.fillStyle = col
-      ctx.beginPath()
-      ctx.roundRect(sx - 4.5, legY - 10, 4, 11, 1)
-      ctx.fill()
-      // Left foot
-      ctx.fillStyle = `rgb(${Math.max(0,r-40)},${Math.max(0,g-40)},${Math.max(0,b-40)})`
-      ctx.beginPath()
-      ctx.roundRect(sx - 6 + legSwing * 0.4, legY, 5, 3, 1)
-      ctx.fill()
-
-      // Right leg
-      ctx.fillStyle = col
-      ctx.beginPath()
-      ctx.roundRect(sx + 0.5, legY - 10, 4, 11, 1)
-      ctx.fill()
-      // Right foot
-      ctx.fillStyle = `rgb(${Math.max(0,r-40)},${Math.max(0,g-40)},${Math.max(0,b-40)})`
-      ctx.beginPath()
-      ctx.roundRect(sx + 1 - legSwing * 0.4, legY, 5, 3, 1)
-      ctx.fill()
-
-      // Torso (shirt in agent color)
-      const torsoTop = legY - 22
-      ctx.fillStyle = col
-      ctx.shadowBlur = glowBlur * 1.4
-      ctx.beginPath()
-      ctx.roundRect(sx - 6, torsoTop, 12, 14, 2)
-      ctx.fill()
-
-      // Torso shading (darker center stripe)
-      ctx.globalAlpha = alpha * 0.35
-      ctx.fillStyle = 'rgba(0,0,0,0.5)'
-      ctx.beginPath()
-      ctx.roundRect(sx - 1.5, torsoTop + 1, 3, 12, 1)
-      ctx.fill()
-      ctx.globalAlpha = alpha
-
-      // Left arm (swings opposite to walk)
-      const armSwing = -walkCycle * 4
+      // ── Shirt / torso ── (agent color, slightly wider)
       ctx.fillStyle = col
       ctx.shadowBlur = glowBlur
-      ctx.save()
-      ctx.translate(sx - 7, torsoTop + 2)
-      ctx.rotate(armSwing * 0.06)
-      ctx.beginPath()
-      ctx.roundRect(-2, 0, 3.5, 10, 1)
-      ctx.fill()
-      // Hand
-      ctx.fillStyle = skin
-      ctx.beginPath()
-      ctx.arc(-0.5, 11, 2.2, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.restore()
+      ctx.beginPath(); ctx.roundRect(sx - 6, baseY - 26, 12, 14, 2); ctx.fill()
+      // Collar shadow
+      ctx.fillStyle = midCol
+      ctx.beginPath(); ctx.roundRect(sx - 2, baseY - 26, 4, 3, 1); ctx.fill()
 
+      // ── Arms ── (swing with walk)
+      const armSwing = c.moving ? walkCycle * 18 : 0  // degrees
+      const rad = (armSwing * Math.PI) / 180
+      ctx.fillStyle = col
+      // Left arm
+      ctx.save()
+      ctx.translate(sx - 7, baseY - 24)
+      ctx.rotate(rad * 0.7)
+      ctx.beginPath(); ctx.roundRect(-2, 0, 3, 9, 1); ctx.fill()
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(0, 10, 2, 0, Math.PI * 2); ctx.fill()
+      ctx.restore()
       // Right arm
       ctx.fillStyle = col
       ctx.save()
-      ctx.translate(sx + 7, torsoTop + 2)
-      ctx.rotate(-armSwing * 0.06)
-      ctx.beginPath()
-      ctx.roundRect(-1.5, 0, 3.5, 10, 1)
-      ctx.fill()
-      // Hand
-      ctx.fillStyle = skin
-      ctx.beginPath()
-      ctx.arc(0.5, 11, 2.2, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.translate(sx + 7, baseY - 24)
+      ctx.rotate(-rad * 0.7)
+      ctx.beginPath(); ctx.roundRect(-1, 0, 3, 9, 1); ctx.fill()
+      ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(0, 10, 2, 0, Math.PI * 2); ctx.fill()
       ctx.restore()
 
-      // Neck
+      // ── Neck ──
       ctx.fillStyle = skin
       ctx.shadowBlur = 0
-      ctx.beginPath()
-      ctx.roundRect(sx - 2, torsoTop - 4, 4, 5, 1)
-      ctx.fill()
+      ctx.beginPath(); ctx.roundRect(sx - 2, baseY - 30, 4, 5, 1); ctx.fill()
 
-      // Head
-      const headCY = torsoTop - 10
-      ctx.shadowColor = col; ctx.shadowBlur = glowBlur * 1.2
+      // ── Head ── (slightly wider than tall, like a real face)
+      const headTop = baseY - 43
+      const headH = 12; const headW = 8
       ctx.fillStyle = skin
+      ctx.shadowColor = col; ctx.shadowBlur = glowBlur
       ctx.beginPath()
-      ctx.ellipse(sx, headCY, 7, 8, 0, 0, Math.PI * 2)
+      ctx.roundRect(sx - headW, headTop, headW * 2, headH, [3, 3, 2, 2])
       ctx.fill()
 
-      // Hair (use agent color)
+      // ── Hair cap ── (flat top, covers top third of head, in agent color)
       ctx.fillStyle = col
-      ctx.shadowBlur = glowBlur
+      ctx.shadowBlur = glowBlur * 0.8
       ctx.beginPath()
-      ctx.ellipse(sx, headCY - 3, 7.2, 5.5, 0, Math.PI, Math.PI * 2)
+      ctx.roundRect(sx - headW - 0.5, headTop - 1, headW * 2 + 1, 6, [3, 3, 0, 0])
       ctx.fill()
-      // Hair side bits
-      ctx.beginPath()
-      ctx.ellipse(sx - 6.5, headCY - 1, 2, 4, -0.3, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.beginPath()
-      ctx.ellipse(sx + 6.5, headCY - 1, 2, 4, 0.3, 0, Math.PI * 2)
-      ctx.fill()
+      // Hair sides (slightly wider than head)
+      ctx.beginPath(); ctx.roundRect(sx - headW - 1.5, headTop + 1, 3, 5, 1); ctx.fill()
+      ctx.beginPath(); ctx.roundRect(sx + headW - 1.5, headTop + 1, 3, 5, 1); ctx.fill()
 
-      // Eyes
+      // ── Eyes ── (2px dots, dark, inside head)
       ctx.shadowBlur = 0
-      ctx.fillStyle = c.online ? '#1a1a2e' : '#0a1020'
-      ctx.beginPath(); ctx.arc(sx - 2.8, headCY + 1, 1.4, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(sx + 2.8, headCY + 1, 1.4, 0, Math.PI * 2); ctx.fill()
-      // Eye shine
-      ctx.fillStyle = c.online ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)'
-      ctx.beginPath(); ctx.arc(sx - 2.2, headCY + 0.5, 0.6, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(sx + 3.3, headCY + 0.5, 0.6, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = '#111'
+      ctx.beginPath(); ctx.rect(sx - 4, headTop + 5, 2, 2); ctx.fill()
+      ctx.beginPath(); ctx.rect(sx + 2, headTop + 5, 2, 2); ctx.fill()
+      // whites
+      ctx.fillStyle = c.online ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)'
+      ctx.beginPath(); ctx.rect(sx - 3, headTop + 5, 1, 1); ctx.fill()
+      ctx.beginPath(); ctx.rect(sx + 3, headTop + 5, 1, 1); ctx.fill()
 
-      // Mouth (small smile when online)
-      if (c.online) {
-        ctx.strokeStyle = '#a0604a'
-        ctx.lineWidth = 1; ctx.lineCap = 'round'
-        ctx.beginPath()
-        ctx.arc(sx, headCY + 3.5, 2.5, 0.2, Math.PI - 0.2)
-        ctx.stroke()
-      }
+      // ── Mouth ── (tiny line, not arc — avoids uncanny valley)
+      ctx.fillStyle = '#b07060'
+      ctx.beginPath(); ctx.rect(sx - 2, headTop + 9, 4, 1); ctx.fill()
 
-      // Online status dot on chest
+      // ── Online glow badge ──
       if (c.online) {
         ctx.fillStyle = '#22c55e'
         ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 8
-        ctx.beginPath(); ctx.arc(sx, torsoTop + 5, 2, 0, Math.PI * 2); ctx.fill()
+        ctx.beginPath(); ctx.arc(sx + 5, baseY - 22, 2, 0, Math.PI * 2); ctx.fill()
       }
 
       ctx.restore()
+
+      // headCY used by label below
+      const headCY = headTop + headH / 2
 
       // Label
       const labelY = headCY - 22
