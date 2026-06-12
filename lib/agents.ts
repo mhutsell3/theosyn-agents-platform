@@ -8,20 +8,27 @@ export interface AgentStatus {
   ollama_model: string | null
   last_heartbeat: string | null
   isOnline: boolean
-  isAvailable: boolean  // heartbeat within 8 hours — eligible for meetings
+  isAvailable: boolean
   lastAction: string | null
   minutesAgo: number | null
 }
 
-export async function getAgentStatuses(): Promise<AgentStatus[]> {
+export async function getAgentStatuses(orgId: string): Promise<AgentStatus[]> {
   const [agents, heartbeats] = await Promise.all([
-    db`SELECT id, name, role, avatar_emoji, ollama_model, last_heartbeat FROM agents WHERE enabled = true ORDER BY name ASC` as unknown as {
+    db`
+      SELECT id, name, role, avatar_emoji, ollama_model, last_heartbeat
+      FROM agents
+      WHERE enabled = true AND org_id = ${orgId}
+      ORDER BY name ASC
+    ` as unknown as {
       id: string; name: string; role: string; avatar_emoji: string
       ollama_model: string | null; last_heartbeat: string | null
     }[],
     db`
       SELECT DISTINCT ON (agent_id) agent_id, content, created_at
-      FROM heartbeats
+      FROM heartbeats h
+      JOIN agents a ON a.id = h.agent_id
+      WHERE a.org_id = ${orgId}
       ORDER BY agent_id, created_at DESC
     ` as unknown as { agent_id: string; content: string; created_at: string }[],
   ])
@@ -43,4 +50,19 @@ export async function getAgentStatuses(): Promise<AgentStatus[]> {
       minutesAgo,
     }
   })
+}
+
+export async function getOrgSettings(orgId: string): Promise<Record<string, string>> {
+  const rows = await db`
+    SELECT key, value FROM org_settings WHERE org_id = ${orgId}
+  ` as { key: string; value: string }[]
+  return Object.fromEntries(rows.map(r => [r.key, r.value]))
+}
+
+export async function upsertOrgSetting(orgId: string, key: string, value: string) {
+  await db`
+    INSERT INTO org_settings (org_id, key, value)
+    VALUES (${orgId}, ${key}, ${value})
+    ON CONFLICT (org_id, key) DO UPDATE SET value = ${value}, updated_at = now()
+  `
 }

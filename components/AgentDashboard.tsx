@@ -5,7 +5,7 @@ import { signOut } from 'next-auth/react'
 import PixelOffice from './PixelOffice'
 import type { AgentStatus } from '@/lib/agents'
 
-export default function AgentDashboard({ initialAgents }: { initialAgents: AgentStatus[] }) {
+export default function AgentDashboard({ initialAgents, orgName }: { initialAgents: AgentStatus[]; orgName?: string }) {
   const [agents, setAgents] = useState(initialAgents)
   const [lastRefresh, setLastRefresh] = useState(new Date())
   const [meetingActive, setMeetingActive] = useState(false)
@@ -36,7 +36,7 @@ export default function AgentDashboard({ initialAgents }: { initialAgents: Agent
           <span className="text-2xl">🏢</span>
           <div>
             <h1 className="text-white font-bold text-lg leading-none">TheoSYN Agents</h1>
-            <p className="text-zinc-500 text-xs mt-0.5">Live Command Center</p>
+            <p className="text-zinc-500 text-xs mt-0.5">{orgName ?? 'Live Command Center'}</p>
           </div>
         </div>
 
@@ -48,6 +48,7 @@ export default function AgentDashboard({ initialAgents }: { initialAgents: Agent
           <button onClick={refresh} className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
             ↻ {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </button>
+          <a href="/settings" className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors">Settings</a>
           <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-zinc-600 hover:text-zinc-400 text-xs transition-colors">
             Sign out
           </button>
