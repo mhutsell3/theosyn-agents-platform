@@ -46,8 +46,8 @@ function buildLayout(agents: AgentStatus[]) {
   agents.forEach((a, i) => {
     const col = i % COLS
     const row = Math.floor(i / COLS)
-    const x = CONF_W + 1.8 + col * 2.8
-    const z = 1.0 + row * 3.2
+    const x = CONF_W + 1.8 + col * 2.4
+    const z = 1.0 + row * 2.8
     map[a.name] = { col, row, x, z }
   })
   return map
@@ -103,7 +103,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
     const ctx: CanvasRenderingContext2D = ctxMaybe
 
     const W = container.clientWidth || 1280
-    const H = Math.min(Math.round(W * 0.42), 560)
+    const H = Math.min(Math.round(W * 0.56), 700)
     canvas.width = W; canvas.height = H
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
 
