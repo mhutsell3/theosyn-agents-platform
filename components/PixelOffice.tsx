@@ -131,12 +131,12 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       renderer.shadowMap.enabled = true
       renderer.shadowMap.type = THREE.PCFSoftShadowMap
       renderer.toneMapping = THREE.ACESFilmicToneMapping
-      renderer.toneMappingExposure = 1.3
-      renderer.setClearColor(0x060b16)
+      renderer.toneMappingExposure = 1.6
+      renderer.setClearColor(0x030710)
       mountRef.current!.appendChild(renderer.domElement)
 
       scene = new THREE.Scene()
-      scene.fog = new THREE.FogExp2(0x060b16, 0.012)
+      scene.fog = new THREE.FogExp2(0x030710, 0.005)
 
       // Compute office bounds to center camera
       const allX = charsRef.current.map(c => c.deskX)
@@ -158,28 +158,29 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       camera.lookAt(cx, 0, cz)
 
       // ── Lighting ───────────────────────────────────────────
-      scene.add(new THREE.AmbientLight(0x2a3560, 3.5))
-      const sun = new THREE.DirectionalLight(0xfff5e8, 3.0)
+      scene.add(new THREE.AmbientLight(0x334477, 6.0))
+      scene.add(new THREE.HemisphereLight(0x2255aa, 0x001133, 3.0))
+      const sun = new THREE.DirectionalLight(0xaabbff, 4.0)
       sun.position.set(cx + 10, 25, cz + 5); sun.castShadow = true
       sun.shadow.mapSize.set(2048, 2048)
       sun.shadow.camera.left = -40; sun.shadow.camera.right = 40
       sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30
       sun.shadow.bias = -0.001
       scene.add(sun)
-      const fill = new THREE.DirectionalLight(0x4488ff, 0.8)
+      const fill = new THREE.DirectionalLight(0x6699ff, 2.5)
       fill.position.set(cx - 15, 10, cz - 10); scene.add(fill)
-      const rim = new THREE.DirectionalLight(0xff88ff, 0.3)
+      const rim = new THREE.DirectionalLight(0xff44ff, 1.2)
       rim.position.set(cx + 5, 8, cz - 20); scene.add(rim)
 
       // ── Floor ──────────────────────────────────────────────
       const floorW = maxX - minX + 8
       const floorD = maxZ - minZ + 8
       const floorGeo = new THREE.PlaneGeometry(floorW, floorD)
-      const floorMat = new THREE.MeshStandardMaterial({ color: 0x0c1525, roughness: 0.8, metalness: 0.1 })
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x080e1c, roughness: 0.9, metalness: 0.15, emissive: 0x050a15, emissiveIntensity: 0.5 })
       const floor = new THREE.Mesh(floorGeo, floorMat)
       floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0, cz); floor.receiveShadow = true
       scene.add(floor)
-      const grid = new THREE.GridHelper(Math.max(floorW, floorD) + 4, Math.round(Math.max(floorW, floorD) + 4), 0x0f2040, 0x0a1830)
+      const grid = new THREE.GridHelper(Math.max(floorW, floorD) + 4, Math.round(Math.max(floorW, floorD) + 4), 0x1a3a6e, 0x0f2044)
       grid.position.set(cx, 0.006, cz); scene.add(grid)
 
       // Row lanes
@@ -215,7 +216,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         // Colored accent edge
         const acc = new THREE.Mesh(
           new THREE.BoxGeometry(1.5, 0.025, 0.035),
-          new THREE.MeshStandardMaterial({ color: c.num, emissive: c.num, emissiveIntensity: a.isOnline ? 2.0 : 0.12 })
+          new THREE.MeshStandardMaterial({ color: c.num, emissive: c.num, emissiveIntensity: a.isOnline ? 4.0 : 1.5 })
         )
         acc.position.set(0, 0.265, 0.5175); deskGroup.add(acc)
 
@@ -234,13 +235,13 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         // Screen
         const scr = new THREE.Mesh(new THREE.BoxGeometry(0.71, 0.45, 0.01),
           new THREE.MeshStandardMaterial({
-            color: a.isOnline ? c.num : 0x060c18,
-            emissive: a.isOnline ? c.num : 0x020508,
-            emissiveIntensity: a.isOnline ? 2.5 : 0.05,
+            color: a.isOnline ? c.num : 0x1a2e50,
+            emissive: a.isOnline ? c.num : 0x0d1f40,
+            emissiveIntensity: a.isOnline ? 4.0 : 1.0,
           }))
         scr.position.set(0, 0.56, -0.197); deskGroup.add(scr)
         if (a.isOnline) {
-          const sl = new THREE.PointLight(c.num, 1.2, 3.0)
+          const sl = new THREE.PointLight(c.num, 3.5, 5.0)
           sl.position.set(0, 0.56, -0.1); deskGroup.add(sl)
         }
 
@@ -270,8 +271,9 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
 
       // Glass walls
       const glassMat = new THREE.MeshPhysicalMaterial({
-        color: 0x88aaff, transparent: true, opacity: 0.14,
-        roughness: 0.0, side: THREE.DoubleSide,
+        color: 0xaaccff, transparent: true, opacity: 0.35,
+        roughness: 0.0, metalness: 0.1, side: THREE.DoubleSide,
+        emissive: 0x2244aa, emissiveIntensity: 0.4,
       })
       const wallSpecs: { pos: [number,number,number]; size: [number,number,number] }[] = [
         { pos: [CONF_X + CONF_W, 0.75, CONF_Z + CONF_D * 0.22], size: [0.05, 1.5, CONF_D * 0.42] },
@@ -286,7 +288,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       })
 
       // Glowing edge lines
-      const edgeMat = new THREE.LineBasicMaterial({ color: 0x3355aa })
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0x4488ff, linewidth: 2 })
       const corners: [number, number][] = [[CONF_X, CONF_Z], [CONF_X + CONF_W, CONF_Z], [CONF_X + CONF_W, CONF_Z + CONF_D], [CONF_X, CONF_Z + CONF_D]]
       corners.forEach(([ex, ez]) => {
         const pts = [new THREE.Vector3(ex, 0, ez), new THREE.Vector3(ex, 1.5, ez)]
@@ -303,8 +305,8 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       tbl.position.set(CONF_CX, 0.25, CONF_CZ); tbl.castShadow = true; scene.add(tbl)
 
       // Table rim
-      ringMesh = new THREE.Mesh(new THREE.TorusGeometry(1.7, 0.04, 8, 64),
-        new THREE.MeshStandardMaterial({ color: 0x4466cc, emissive: 0x2244aa, emissiveIntensity: 0.5 }))
+      ringMesh = new THREE.Mesh(new THREE.TorusGeometry(1.7, 0.05, 8, 64),
+        new THREE.MeshStandardMaterial({ color: 0x6688ff, emissive: 0x4466ff, emissiveIntensity: 3.0 }))
       ringMesh.rotation.x = -Math.PI / 2; ringMesh.position.set(CONF_CX, 0.31, CONF_CZ); scene.add(ringMesh)
 
       // Hologram above table (torus rings, hidden by default)
@@ -344,8 +346,8 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         // Body
         const body = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.15, 0.5, 12),
           new THREE.MeshStandardMaterial({
-            color: col.num, roughness: 0.4, metalness: 0.05,
-            emissive: col.num, emissiveIntensity: ag?.isOnline ? 0.25 : 0,
+            color: col.num, roughness: 0.3, metalness: 0.1,
+            emissive: col.num, emissiveIntensity: ag?.isOnline ? 2.0 : 0.6,
           }))
         body.position.y = 0.35; body.castShadow = true; grp.add(body)
 
@@ -368,7 +370,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         }
 
         // Glow light
-        const lite = new THREE.PointLight(col.num, ag?.isOnline ? 2.0 : 0, 3.0)
+        const lite = new THREE.PointLight(col.num, ag?.isOnline ? 4.0 : 0.5, 4.0)
         lite.position.y = 0.4; grp.add(lite)
 
         scene.add(grp)
@@ -377,10 +379,10 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         const lbl = document.createElement('div')
         lbl.style.cssText = `position:absolute;pointer-events:none;transform:translate(-50%,0);
           background:rgba(4,8,18,0.93);border:1px solid ${col.hex}66;
-          color:${ag?.isOnline ? col.hex : '#2a3860'};
+          color:${ag?.isOnline ? col.hex : '#5a7ab0'};
           font:600 9px/1.4 ui-monospace,monospace;padding:2px 7px;border-radius:6px;
-          white-space:nowrap;box-shadow:${ag?.isOnline ? `0 0 8px ${col.hex}55` : 'none'};
-          opacity:${ag?.isOnline ? '1' : '0.25'}`
+          white-space:nowrap;box-shadow:${ag?.isOnline ? `0 0 10px ${col.hex}88` : 'none'};
+          opacity:${ag?.isOnline ? '1' : '0.6'}`
         lbl.textContent = `${c.emoji} ${c.name}`
         labelsRef.current?.appendChild(lbl)
 
@@ -456,7 +458,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
           }
         }
 
-        if (ringMesh) (ringMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = meet.active ? 0.5 + Math.sin(n * 0.06) * 0.4 : 0.2
+        if (ringMesh) (ringMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = meet.active ? 3.0 + Math.sin(n * 0.06) * 1.5 : 1.5
 
         chars.forEach(c => {
           const m = charMeshes.get(c.id)
@@ -508,7 +510,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
             m.grp.position.y = c.moving ? Math.abs(Math.sin(c.phase)) * 0.1 : Math.sin(c.phase * 0.35) * 0.024
             if (c.moving) m.body.rotation.z = Math.sin(c.phase) * 0.12
             else m.body.rotation.z *= 0.88
-            m.lite.intensity += ((c.online ? 2.0 : 0) - m.lite.intensity) * 0.05
+            m.lite.intensity += ((c.online ? 4.0 : 0.5) - m.lite.intensity) * 0.05
 
             // Project label
             const v = new THREE.Vector3(c.x, 1.28, c.z).project(camera)
