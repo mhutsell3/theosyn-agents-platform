@@ -21,13 +21,14 @@ async function migrate() {
 
     await db`
       CREATE TABLE IF NOT EXISTS users (
-        id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        email      text UNIQUE NOT NULL,
-        name       text,
-        image      text,
-        org_id     uuid REFERENCES organizations(id) ON DELETE CASCADE,
-        role       varchar(20) NOT NULL DEFAULT 'owner',
-        created_at timestamptz DEFAULT now()
+        id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        email           text UNIQUE NOT NULL,
+        name            text,
+        image           text,
+        org_id          uuid REFERENCES organizations(id) ON DELETE CASCADE,
+        role            varchar(20) NOT NULL DEFAULT 'owner',
+        is_system_admin boolean NOT NULL DEFAULT false,
+        created_at      timestamptz DEFAULT now()
       )
     `
 
@@ -53,6 +54,7 @@ async function migrate() {
         last_heartbeat timestamptz,
         created_at     timestamptz DEFAULT now(),
         enabled        boolean NOT NULL DEFAULT true,
+        system_enabled boolean NOT NULL DEFAULT true,
         ollama_model   text,
         gemini_model   text,
         category       varchar(20) NOT NULL DEFAULT 'smb'
@@ -74,10 +76,10 @@ async function migrate() {
     await db`CREATE INDEX IF NOT EXISTS agents_org_id_idx ON agents(org_id)`
     await db`CREATE INDEX IF NOT EXISTS org_settings_org_id_idx ON org_settings(org_id)`
 
-    // Add org_id column to agents if upgrading from standalone schema
-    await db`
-      ALTER TABLE agents ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES organizations(id) ON DELETE CASCADE
-    `
+    // Upgrade columns for existing tables
+    await db`ALTER TABLE agents ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES organizations(id) ON DELETE CASCADE`
+    await db`ALTER TABLE agents ADD COLUMN IF NOT EXISTS system_enabled boolean NOT NULL DEFAULT true`
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_system_admin boolean NOT NULL DEFAULT false`
 
     console.log('Migration complete')
   } finally {

@@ -53,10 +53,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!token.email) return token
       try {
         const [row] = await db`
-          SELECT u.id, u.org_id, u.role, o.name as org_name, o.slug as org_slug
+          SELECT u.id, u.org_id, u.role, u.is_system_admin, o.name as org_name, o.slug as org_slug
           FROM users u JOIN organizations o ON o.id = u.org_id
           WHERE u.email = ${token.email}
-        ` as { id: string; org_id: string; role: string; org_name: string; org_slug: string }[]
+        ` as { id: string; org_id: string; role: string; is_system_admin: boolean; org_name: string; org_slug: string }[]
 
         if (row) {
           token.userId = row.id
@@ -64,6 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.orgName = row.org_name
           token.orgSlug = row.org_slug
           token.role = row.role
+          token.isSystemAdmin = row.is_system_admin
         }
       } catch (err) {
         console.error('jwt callback error:', err)
@@ -77,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.orgName = token.orgName as string
       session.user.orgSlug = token.orgSlug as string
       session.user.role = token.role as string
+      session.user.isSystemAdmin = token.isSystemAdmin as boolean
       return session
     },
   },

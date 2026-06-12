@@ -1,12 +1,6 @@
 import 'next-auth'
 
 declare module 'next-auth' {
-  interface User {
-    orgId?: string
-    orgName?: string
-    orgSlug?: string
-    role?: string
-  }
   interface Session {
     user: {
       id: string
@@ -17,6 +11,7 @@ declare module 'next-auth' {
       orgName: string
       orgSlug: string
       role: string
+      isSystemAdmin: boolean
     }
   }
 }
@@ -28,5 +23,6 @@ declare module 'next-auth/jwt' {
     orgName?: string
     orgSlug?: string
     role?: string
+    isSystemAdmin?: boolean
   }
 }
