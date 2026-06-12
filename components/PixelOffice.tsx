@@ -26,10 +26,10 @@ function isoProject(x: number, z: number, originX: number, originY: number) {
   }
 }
 
-const CONF_W = 5; const CONF_D = 10
+const CONF_W = 4; const CONF_D = 9
 const CONF_X = 0; const CONF_Z = 0
 const CONF_CX = CONF_X + CONF_W / 2; const CONF_CZ = CONF_Z + CONF_D / 2
-const CONF_ENTRY_X = CONF_X + CONF_W + 0.5
+const CONF_ENTRY_X = CONF_X + CONF_W + 0.3
 
 const CONF_SEATS = [
   { x: CONF_CX - 0.8, z: CONF_CZ - 2 },
@@ -46,8 +46,8 @@ function buildLayout(agents: AgentStatus[]) {
   agents.forEach((a, i) => {
     const col = i % COLS
     const row = Math.floor(i / COLS)
-    const x = CONF_W + 2.5 + col * 3.0
-    const z = 1.5 + row * 3.5
+    const x = CONF_W + 1.8 + col * 2.8
+    const z = 1.0 + row * 3.2
     map[a.name] = { col, row, x, z }
   })
   return map
@@ -117,9 +117,10 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
     const sceneCX = sceneMaxX / 2
     const sceneCZ = sceneMaxZ / 2
 
-    // Origin: center of canvas, shifted up so scene fits
+    // Origin: fit entire scene with margin top/bottom
+    const sceneScreenH = (sceneMaxX + sceneMaxZ) * (TILE_H / 2)
     const originX = W / 2 - (sceneCX - sceneCZ) * (TILE_W / 2)
-    const originY = H * 0.38 - (sceneCX + sceneCZ) * (TILE_H / 2) * 0.5
+    const originY = Math.max(30, (H - sceneScreenH) / 2 + 10)
     originRef.current = { x: originX, y: originY }
 
     charsRef.current = agentsRef.current.map(a => {
