@@ -3,36 +3,62 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AgentStatus } from '@/lib/agents'
 
-// ── Colors ─────────────────────────────────────────────────────
 const COL: Record<string, { num: number; hex: string }> = {
-  Theo:   { num: 0x6366f1, hex: '#6366f1' }, Scout:  { num: 0x10b981, hex: '#10b981' },
-  Nova:   { num: 0xf59e0b, hex: '#f59e0b' }, Quill:  { num: 0x8b5cf6, hex: '#8b5cf6' },
-  Beacon: { num: 0x06b6d4, hex: '#06b6d4' }, Flow:   { num: 0x3b82f6, hex: '#3b82f6' },
-  Piper:  { num: 0xec4899, hex: '#ec4899' }, Remi:   { num: 0xef4444, hex: '#ef4444' },
-  Sage:   { num: 0x84cc16, hex: '#84cc16' }, Lumen:  { num: 0xf97316, hex: '#f97316' },
-  Atlas:  { num: 0x64748b, hex: '#64748b' }, Scribe: { num: 0xa78bfa, hex: '#a78bfa' },
+  Theo:      { num: 0x6366f1, hex: '#6366f1' },
+  Scout:     { num: 0x10b981, hex: '#10b981' },
+  Nova:      { num: 0xf59e0b, hex: '#f59e0b' },
+  Quill:     { num: 0x8b5cf6, hex: '#8b5cf6' },
+  Beacon:    { num: 0x06b6d4, hex: '#06b6d4' },
+  Flow:      { num: 0x3b82f6, hex: '#3b82f6' },
+  Piper:     { num: 0xec4899, hex: '#ec4899' },
+  Remi:      { num: 0xef4444, hex: '#ef4444' },
+  Sage:      { num: 0x84cc16, hex: '#84cc16' },
+  Lumen:     { num: 0xf97316, hex: '#f97316' },
+  Atlas:     { num: 0x64748b, hex: '#64748b' },
+  Scribe:    { num: 0xa78bfa, hex: '#a78bfa' },
+  Forge:     { num: 0xd97706, hex: '#d97706' },
+  Gather:    { num: 0x059669, hex: '#059669' },
+  Grant:     { num: 0x7c3aed, hex: '#7c3aed' },
+  Herald:    { num: 0xe11d48, hex: '#e11d48' },
+  Missions:  { num: 0x0284c7, hex: '#0284c7' },
+  Orion:     { num: 0x9333ea, hex: '#9333ea' },
+  Pulse:     { num: 0xf43f5e, hex: '#f43f5e' },
+  Reach:     { num: 0x14b8a6, hex: '#14b8a6' },
+  Serve:     { num: 0x22c55e, hex: '#22c55e' },
+  Shepherd:  { num: 0xeab308, hex: '#eab308' },
+  Steward:   { num: 0x6366f1, hex: '#6366f1' },
+  Flock:     { num: 0xa855f7, hex: '#a855f7' },
+  Welcome:   { num: 0x38bdf8, hex: '#38bdf8' },
+}
+const DEFAULT_COL = { num: 0x6366f1, hex: '#6366f1' }
+
+// Build desk grid dynamically from agents list
+function buildLayout(agents: AgentStatus[]) {
+  const COLS = 5
+  const rows: { x: number; z: number }[][] = []
+  const map: Record<string, { col: number; row: number }> = {}
+  agents.forEach((a, i) => {
+    const col = i % COLS
+    const row = Math.floor(i / COLS)
+    if (!rows[row]) rows[row] = []
+    const x = 1.5 + col * 3.2
+    const z = 1.8 + row * 4.5
+    rows[row][col] = { x, z }
+    map[a.name] = { col, row }
+  })
+  return { map, rows }
 }
 
-// ── World layout ────────────────────────────────────────────────
-const COL_X = [1.5, 4.5, 7.5, 10.5, 13.5]
-const ROW_Z = [1.5, 5.5, 9.5]
-const DESK_LAYOUT: Record<string, { col: number; row: number }> = {
-  Theo:   { col: 0, row: 0 }, Scout:  { col: 1, row: 0 }, Nova:   { col: 2, row: 0 },
-  Quill:  { col: 3, row: 0 }, Lumen:  { col: 4, row: 0 },
-  Beacon: { col: 0, row: 1 }, Flow:   { col: 1, row: 1 }, Piper:  { col: 2, row: 1 },
-  Remi:   { col: 3, row: 1 }, Sage:   { col: 4, row: 1 },
-  Atlas:  { col: 0, row: 2 }, Scribe: { col: 1, row: 2 },
-}
-const CONF_X = 17.2; const CONF_Z = 0.5; const CONF_W = 6.0; const CONF_D = 11.0
+const CONF_X = 0; const CONF_Z = 0; const CONF_W = 6.5; const CONF_D = 14
 const CONF_CX = CONF_X + CONF_W / 2; const CONF_CZ = CONF_Z + CONF_D / 2
-const CONF_ENTRY_X = CONF_X - 0.2
+const CONF_ENTRY_X = CONF_X + CONF_W + 0.2
 const CONF_SEATS = [
-  { x: CONF_CX, z: CONF_Z + 1.5 },
-  { x: CONF_CX + 1.6, z: CONF_CZ - 1.5 },
-  { x: CONF_CX + 1.6, z: CONF_CZ + 1.5 },
-  { x: CONF_CX, z: CONF_Z + CONF_D - 1.5 },
-  { x: CONF_CX - 1.6, z: CONF_CZ + 1.5 },
-  { x: CONF_CX - 1.6, z: CONF_CZ - 1.5 },
+  { x: CONF_CX, z: CONF_Z + 2.2 },
+  { x: CONF_CX + 1.8, z: CONF_CZ - 1.5 },
+  { x: CONF_CX + 1.8, z: CONF_CZ + 1.5 },
+  { x: CONF_CX, z: CONF_Z + CONF_D - 2.2 },
+  { x: CONF_CX - 1.8, z: CONF_CZ + 1.5 },
+  { x: CONF_CX - 1.8, z: CONF_CZ - 1.5 },
 ]
 
 type CS = 'at_desk' | 'wandering' | 'to_desk' | 'going_to_meeting' | 'in_meeting'
@@ -44,12 +70,12 @@ interface Char {
 }
 interface Meeting { active: boolean; participants: string[]; timer: number; announce: string; announceTick: number }
 
-// ── Component ──────────────────────────────────────────────────
 export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: {
   agents: AgentStatus[]
   onCallMeeting?: (fn: () => void) => void
   onMeetingChange?: (active: boolean) => void
 }) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const mountRef = useRef<HTMLDivElement>(null)
   const labelsRef = useRef<HTMLDivElement>(null)
   const charsRef = useRef<Char[]>([])
@@ -61,29 +87,29 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
   const [announce, setAnnounce] = useState('')
   const [confOn, setConfOn] = useState(false)
 
-  // Keep agents ref in sync
   useEffect(() => { agentsRef.current = agents }, [agents])
+  useEffect(() => { onCallMeeting?.(() => { triggerRef.current = true }) }, [onCallMeeting])
 
   useEffect(() => {
-    onCallMeeting?.(() => { triggerRef.current = true })
-  }, [onCallMeeting])
+    if (!mountRef.current || !containerRef.current) return
+    const W = containerRef.current.clientWidth || 1200
+    const H = Math.round(W * 0.52)
 
-  // Main Three.js effect (runs once)
-  useEffect(() => {
-    if (!mountRef.current) return
-    const W = 810, H = 480
-
-    // Init chars from agents at mount time
     const initAgents = agentsRef.current
+    const { map: deskMap, rows: deskRows } = buildLayout(initAgents)
+
     charsRef.current = initAgents.map(a => {
-      const L = DESK_LAYOUT[a.name]
-      const px = L ? COL_X[L.col] : 3
-      const pz = L ? ROW_Z[L.row] : 3
+      const L = deskMap[a.name]
+      const row = L ? deskRows[L.row] : deskRows[0]
+      const pos = (row && L) ? row[L.col] : { x: 5, z: 5 }
+      // Offset for conference room on left side: shift desks right
+      const px = pos.x + CONF_W + 2.5
+      const pz = pos.z
       return {
         id: a.id, name: a.name, emoji: a.avatar_emoji,
         online: a.isOnline, available: a.isAvailable, lastAction: a.lastAction,
         x: px, z: pz, tx: px, tz: pz, deskX: px, deskZ: pz,
-        state: 'at_desk', timer: 100 + Math.random() * 200, seatIdx: -1,
+        state: 'at_desk', timer: 80 + Math.random() * 180, seatIdx: -1,
         moving: false, facing: 0, bubble: null, bubbleTimer: 0,
         phase: Math.random() * Math.PI * 2,
       }
@@ -91,8 +117,8 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
 
     let THREE: any, renderer: any, scene: any, camera: any
     let rafId: number
-    const charMeshes = new Map<string, { grp: any; body: any; head: any; lite: any; lbl: HTMLDivElement }>()
-    let confLight: any, ringMesh: any
+    const charMeshes = new Map<string, { grp: any; body: any; lite: any; lbl: HTMLDivElement }>()
+    let confLight: any, ringMesh: any, hologram: any
 
     const init = async () => {
       THREE = await import('three')
@@ -103,319 +129,311 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       renderer.shadowMap.enabled = true
       renderer.shadowMap.type = THREE.PCFSoftShadowMap
       renderer.toneMapping = THREE.ACESFilmicToneMapping
-      renderer.toneMappingExposure = 1.1
-      renderer.setClearColor(0x070c18)
+      renderer.toneMappingExposure = 1.3
+      renderer.setClearColor(0x060b16)
       mountRef.current!.appendChild(renderer.domElement)
 
       scene = new THREE.Scene()
-      scene.fog = new THREE.FogExp2(0x070c18, 0.018)
+      scene.fog = new THREE.FogExp2(0x060b16, 0.012)
 
-      // Isometric orthographic camera
+      // Compute office bounds to center camera
+      const allX = charsRef.current.map(c => c.deskX)
+      const allZ = charsRef.current.map(c => c.deskZ)
+      const minX = Math.min(CONF_X, ...allX) - 1
+      const maxX = Math.max(...allX) + 2
+      const minZ = Math.min(CONF_Z, ...allZ) - 1
+      const maxZ = Math.max(...allZ) + 2
+      const cx = (minX + maxX) / 2
+      const cz = (minZ + maxZ) / 2
+      const spanX = maxX - minX + 4
+      const spanZ = maxZ - minZ + 4
+
+      // Isometric orthographic camera fitting the scene
       const asp = W / H
-      const fH = 9.5
-      camera = new THREE.OrthographicCamera(-fH * asp, fH * asp, fH, -fH, 0.1, 200)
-      camera.position.set(24, 18, 24)
-      camera.lookAt(10, 0, 5.5)
+      const fH = Math.max(spanX / asp, spanZ) * 0.65
+      camera = new THREE.OrthographicCamera(-fH * asp, fH * asp, fH, -fH, 0.1, 300)
+      camera.position.set(cx + spanX * 0.7, spanX * 0.55, cz + spanZ * 0.7)
+      camera.lookAt(cx, 0, cz)
 
-      // ── Lighting ─────────────────────────────────────────────
-      scene.add(new THREE.AmbientLight(0x1a2550, 2))
-      const sun = new THREE.DirectionalLight(0xfff0d0, 2.2)
-      sun.position.set(12, 22, 8); sun.castShadow = true
+      // ── Lighting ───────────────────────────────────────────
+      scene.add(new THREE.AmbientLight(0x2a3560, 3.5))
+      const sun = new THREE.DirectionalLight(0xfff5e8, 3.0)
+      sun.position.set(cx + 10, 25, cz + 5); sun.castShadow = true
       sun.shadow.mapSize.set(2048, 2048)
-      sun.shadow.camera.left = -28; sun.shadow.camera.right = 28
-      sun.shadow.camera.top = 22; sun.shadow.camera.bottom = -22
+      sun.shadow.camera.left = -40; sun.shadow.camera.right = 40
+      sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30
       sun.shadow.bias = -0.001
       scene.add(sun)
-      const fill = new THREE.DirectionalLight(0x3050c0, 0.6)
-      fill.position.set(-8, 8, -8); scene.add(fill)
+      const fill = new THREE.DirectionalLight(0x4488ff, 0.8)
+      fill.position.set(cx - 15, 10, cz - 10); scene.add(fill)
+      const rim = new THREE.DirectionalLight(0xff88ff, 0.3)
+      rim.position.set(cx + 5, 8, cz - 20); scene.add(rim)
 
-      // ── Floor ─────────────────────────────────────────────────
-      const floorGeo = new THREE.PlaneGeometry(32, 22)
-      const floorMat = new THREE.MeshStandardMaterial({ color: 0x0b1220, roughness: 0.85, metalness: 0.05 })
+      // ── Floor ──────────────────────────────────────────────
+      const floorW = maxX - minX + 8
+      const floorD = maxZ - minZ + 8
+      const floorGeo = new THREE.PlaneGeometry(floorW, floorD)
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x0c1525, roughness: 0.8, metalness: 0.1 })
       const floor = new THREE.Mesh(floorGeo, floorMat)
-      floor.rotation.x = -Math.PI / 2; floor.position.set(11, 0, 6); floor.receiveShadow = true
+      floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0, cz); floor.receiveShadow = true
       scene.add(floor)
+      const grid = new THREE.GridHelper(Math.max(floorW, floorD) + 4, Math.round(Math.max(floorW, floorD) + 4), 0x0f2040, 0x0a1830)
+      grid.position.set(cx, 0.006, cz); scene.add(grid)
 
-      // Floor grid
-      const grid = new THREE.GridHelper(32, 32, 0x111f3a, 0x0d1728)
-      grid.position.set(11, 0.005, 6); scene.add(grid)
+      // Row lanes
+      const maxRow = Math.max(...Object.values(deskMap).map(d => d.row))
+      for (let r = 0; r <= maxRow; r++) {
+        const rz = 1.8 + r * 4.5
+        const laneGeo = new THREE.PlaneGeometry(maxX - CONF_W - 2, 0.7)
+        const laneMat = new THREE.MeshStandardMaterial({ color: 0x0e1e35, roughness: 0.9 })
+        const lane = new THREE.Mesh(laneGeo, laneMat)
+        lane.rotation.x = -Math.PI / 2
+        lane.position.set((CONF_W + 2.5 + maxX) / 2, 0.007, rz + 1.5)
+        scene.add(lane)
+      }
 
-      // Row aisle strips
-      ROW_Z.forEach(rz => {
-        const stripGeo = new THREE.PlaneGeometry(16, 0.6)
-        const stripMat = new THREE.MeshStandardMaterial({ color: 0x0e1a2e, roughness: 0.9 })
-        const strip = new THREE.Mesh(stripGeo, stripMat)
-        strip.rotation.x = -Math.PI / 2; strip.position.set(8, 0.006, rz + 1.5)
-        scene.add(strip)
-      })
-
-      // ── Desks & chairs ────────────────────────────────────────
+      // ── Desks ─────────────────────────────────────────────
       initAgents.forEach(a => {
-        const L = DESK_LAYOUT[a.name]; if (!L) return
-        const dx = COL_X[L.col], dz = ROW_Z[L.row]
-        const c = COL[a.name] ?? COL.Theo
+        const L = deskMap[a.name]; if (!L) return
+        const rowArr = deskRows[L.row]; if (!rowArr) return
+        const p = rowArr[L.col]; if (!p) return
+        const dx = p.x + CONF_W + 2.5, dz = p.z
+        const c = COL[a.name] ?? DEFAULT_COL
 
-        // Desk surface
-        const dsk = new THREE.Mesh(
-          new THREE.BoxGeometry(1.3, 0.07, 0.95),
-          new THREE.MeshStandardMaterial({ color: 0x1a2a40, roughness: 0.65, metalness: 0.25 })
+        const deskGroup = new THREE.Group(); deskGroup.position.set(dx, 0, dz)
+
+        // Desk top
+        const top = new THREE.Mesh(
+          new THREE.BoxGeometry(1.5, 0.08, 1.0),
+          new THREE.MeshStandardMaterial({ color: 0x1e3050, roughness: 0.55, metalness: 0.3 })
         )
-        dsk.position.set(dx, 0.235, dz); dsk.castShadow = true; dsk.receiveShadow = true
-        scene.add(dsk)
+        top.position.y = 0.24; top.castShadow = true; top.receiveShadow = true
+        deskGroup.add(top)
 
-        // Accent strip (front edge)
+        // Colored accent edge
         const acc = new THREE.Mesh(
-          new THREE.BoxGeometry(1.3, 0.03, 0.04),
-          new THREE.MeshStandardMaterial({ color: c.num, emissive: c.num, emissiveIntensity: a.isOnline ? 1.2 : 0.08 })
+          new THREE.BoxGeometry(1.5, 0.025, 0.035),
+          new THREE.MeshStandardMaterial({ color: c.num, emissive: c.num, emissiveIntensity: a.isOnline ? 2.0 : 0.12 })
         )
-        acc.position.set(dx, 0.255, dz + 0.475); scene.add(acc)
+        acc.position.set(0, 0.265, 0.5175); deskGroup.add(acc)
 
         // Legs
-        ;[[-0.55, -0.38], [0.55, -0.38], [-0.55, 0.38], [0.55, 0.38]].forEach(([lx, lz]) => {
-          const leg = new THREE.Mesh(
-            new THREE.BoxGeometry(0.055, 0.22, 0.055),
-            new THREE.MeshStandardMaterial({ color: 0x1e293b })
-          )
-          leg.position.set(dx + lx, 0.11, dz + lz); scene.add(leg)
-        })
-
-        // Monitor
-        const mon = new THREE.Mesh(
-          new THREE.BoxGeometry(0.78, 0.52, 0.045),
-          new THREE.MeshStandardMaterial({ color: 0x080f1c, roughness: 0.2, metalness: 0.5 })
-        )
-        mon.position.set(dx, 0.55, dz - 0.22); mon.castShadow = true; scene.add(mon)
-
-        // Screen glow
-        const scr = new THREE.Mesh(
-          new THREE.BoxGeometry(0.68, 0.42, 0.01),
-          new THREE.MeshStandardMaterial({
-            color: a.isOnline ? c.num : 0x040810,
-            emissive: a.isOnline ? c.num : 0x020408,
-            emissiveIntensity: a.isOnline ? 1.5 : 0.05,
-          })
-        )
-        scr.position.set(dx, 0.55, dz - 0.198); scene.add(scr)
-        if (a.isOnline) {
-          const sLight = new THREE.PointLight(c.num, 0.8, 2.5)
-          sLight.position.set(dx, 0.55, dz - 0.1); scene.add(sLight)
+        for (const [lx, lz] of [[-0.62, -0.42], [0.62, -0.42], [-0.62, 0.42], [0.62, 0.42]]) {
+          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.22, 0.06),
+            new THREE.MeshStandardMaterial({ color: 0x1a2a40 }))
+          leg.position.set(lx, 0.11, lz); deskGroup.add(leg)
         }
 
-        // Monitor stand
-        const stnd = new THREE.Mesh(
-          new THREE.BoxGeometry(0.055, 0.18, 0.055),
-          new THREE.MeshStandardMaterial({ color: 0x2d3748 })
-        )
-        stnd.position.set(dx, 0.37, dz - 0.22); scene.add(stnd)
+        // Monitor
+        const mon = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.56, 0.05),
+          new THREE.MeshStandardMaterial({ color: 0x080f1c, roughness: 0.2, metalness: 0.6 }))
+        mon.position.set(0, 0.56, -0.22); mon.castShadow = true; deskGroup.add(mon)
+
+        // Screen
+        const scr = new THREE.Mesh(new THREE.BoxGeometry(0.71, 0.45, 0.01),
+          new THREE.MeshStandardMaterial({
+            color: a.isOnline ? c.num : 0x060c18,
+            emissive: a.isOnline ? c.num : 0x020508,
+            emissiveIntensity: a.isOnline ? 2.5 : 0.05,
+          }))
+        scr.position.set(0, 0.56, -0.197); deskGroup.add(scr)
+        if (a.isOnline) {
+          const sl = new THREE.PointLight(c.num, 1.2, 3.0)
+          sl.position.set(0, 0.56, -0.1); deskGroup.add(sl)
+        }
+
+        // Stand
+        deskGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.06),
+          new THREE.MeshStandardMaterial({ color: 0x2a3a50 })), { position: new (THREE.Vector3)(0, 0.38, -0.22) }))
 
         // Keyboard
-        const kb = new THREE.Mesh(
-          new THREE.BoxGeometry(0.6, 0.02, 0.22),
-          new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.9 })
-        )
-        kb.position.set(dx, 0.275, dz + 0.18); scene.add(kb)
+        deskGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.018, 0.24),
+          new THREE.MeshStandardMaterial({ color: 0x101e30, roughness: 0.9 })), { position: new (THREE.Vector3)(0, 0.278, 0.18) }))
 
-        // Chair seat
-        const chSeat = new THREE.Mesh(
-          new THREE.BoxGeometry(0.65, 0.06, 0.62),
-          new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.95 })
-        )
-        chSeat.position.set(dx, 0.23, dz + 0.72); chSeat.castShadow = true; scene.add(chSeat)
+        // Chair
+        const chMat = new THREE.MeshStandardMaterial({ color: 0x0c1a2e, roughness: 0.95 })
+        deskGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.065, 0.65), chMat), { position: new (THREE.Vector3)(0, 0.235, 0.75) }))
+        deskGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.52, 0.055), chMat), { position: new (THREE.Vector3)(0, 0.495, 1.08) }))
 
-        // Chair back
-        const chBack = new THREE.Mesh(
-          new THREE.BoxGeometry(0.65, 0.45, 0.05),
-          new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.95 })
-        )
-        chBack.position.set(dx, 0.465, dz + 1.02); scene.add(chBack)
+        scene.add(deskGroup)
       })
 
-      // ── Conference room ───────────────────────────────────────
-      // Conf floor
-      const cfFloor = new THREE.Mesh(
-        new THREE.PlaneGeometry(CONF_W, CONF_D),
-        new THREE.MeshStandardMaterial({ color: 0x0d1830, roughness: 0.9 })
-      )
+      // ── Conference room ────────────────────────────────────
+      // Floor
+      const cfFloor = new THREE.Mesh(new THREE.PlaneGeometry(CONF_W, CONF_D),
+        new THREE.MeshStandardMaterial({ color: 0x0d1e36, roughness: 0.85 }))
       cfFloor.rotation.x = -Math.PI / 2
       cfFloor.position.set(CONF_CX, 0.004, CONF_CZ); cfFloor.receiveShadow = true
       scene.add(cfFloor)
 
-      // Glass wall material
+      // Glass walls
       const glassMat = new THREE.MeshPhysicalMaterial({
-        color: 0x6080ff, transparent: true, opacity: 0.1,
-        roughness: 0.0, metalness: 0.0,
-        transmission: 0.9, ior: 1.5,
-        side: THREE.DoubleSide,
+        color: 0x88aaff, transparent: true, opacity: 0.14,
+        roughness: 0.0, side: THREE.DoubleSide,
       })
-
-      const wallDefs = [
-        // left wall (entry gap in middle)
-        { pos: [CONF_X, 0.75, CONF_Z + CONF_D * 0.2], size: [0.05, 1.5, CONF_D * 0.38] },
-        { pos: [CONF_X, 0.75, CONF_Z + CONF_D * 0.8], size: [0.05, 1.5, CONF_D * 0.38] },
-        // right wall
-        { pos: [CONF_X + CONF_W, 0.75, CONF_CZ], size: [0.05, 1.5, CONF_D] },
+      const wallSpecs = [
+        // right wall (entry side) - two halves with gap
+        { pos: [CONF_X + CONF_W, 0.75, CONF_Z + CONF_D * 0.22], size: [0.05, 1.5, CONF_D * 0.42] },
+        { pos: [CONF_X + CONF_W, 0.75, CONF_Z + CONF_D * 0.78], size: [0.05, 1.5, CONF_D * 0.42] },
+        // left wall
+        { pos: [CONF_X, 0.75, CONF_CZ], size: [0.05, 1.5, CONF_D] },
         // front
         { pos: [CONF_CX, 0.75, CONF_Z], size: [CONF_W, 1.5, 0.05] },
         // back
         { pos: [CONF_CX, 0.75, CONF_Z + CONF_D], size: [CONF_W, 1.5, 0.05] },
       ]
-      wallDefs.forEach(({ pos, size }) => {
+      wallSpecs.forEach(({ pos, size }) => {
         const w = new THREE.Mesh(new THREE.BoxGeometry(...size), glassMat)
         w.position.set(...pos); scene.add(w)
       })
 
-      // Neon edge lines on conf room
-      const edgeMat = new THREE.LineBasicMaterial({ color: 0x2a3a6a, linewidth: 1 })
-      const corners = [
-        [CONF_X, CONF_Z], [CONF_X + CONF_W, CONF_Z],
-        [CONF_X + CONF_W, CONF_Z + CONF_D], [CONF_X, CONF_Z + CONF_D],
-      ]
-      corners.forEach(([cx, cz]) => {
-        const verts = [new THREE.Vector3(cx, 0, cz), new THREE.Vector3(cx, 1.5, cz)]
-        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(verts), edgeMat))
+      // Glowing edge lines
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0x3355aa })
+      const corners: [number, number][] = [[CONF_X, CONF_Z], [CONF_X + CONF_W, CONF_Z], [CONF_X + CONF_W, CONF_Z + CONF_D], [CONF_X, CONF_Z + CONF_D]]
+      corners.forEach(([ex, ez]) => {
+        const pts = [new THREE.Vector3(ex, 0, ez), new THREE.Vector3(ex, 1.5, ez)]
+        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat))
       })
-      for (let y of [0, 1.5]) {
-        const pts = [...corners, corners[0]].map(([cx, cz]) => new THREE.Vector3(cx, y, cz))
+      for (const ey of [0, 1.5]) {
+        const pts = [...corners, corners[0]].map(([ex, ez]) => new THREE.Vector3(ex, ey, ez))
         scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat))
       }
 
-      // Conf table
-      const tbl = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.6, 1.6, 0.09, 32),
-        new THREE.MeshStandardMaterial({ color: 0x18243e, roughness: 0.3, metalness: 0.4 })
-      )
-      tbl.position.set(CONF_CX, 0.245, CONF_CZ); tbl.castShadow = true; tbl.receiveShadow = true
-      scene.add(tbl)
+      // Table
+      const tbl = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 0.1, 32),
+        new THREE.MeshStandardMaterial({ color: 0x1a2e50, roughness: 0.25, metalness: 0.5 }))
+      tbl.position.set(CONF_CX, 0.25, CONF_CZ); tbl.castShadow = true; scene.add(tbl)
 
-      // Table glow ring
-      ringMesh = new THREE.Mesh(
-        new THREE.TorusGeometry(1.6, 0.035, 8, 64),
-        new THREE.MeshStandardMaterial({ color: 0x3355bb, emissive: 0x2244aa, emissiveIntensity: 0.4 })
-      )
-      ringMesh.rotation.x = -Math.PI / 2; ringMesh.position.set(CONF_CX, 0.295, CONF_CZ)
-      scene.add(ringMesh)
+      // Table rim
+      ringMesh = new THREE.Mesh(new THREE.TorusGeometry(1.7, 0.04, 8, 64),
+        new THREE.MeshStandardMaterial({ color: 0x4466cc, emissive: 0x2244aa, emissiveIntensity: 0.5 }))
+      ringMesh.rotation.x = -Math.PI / 2; ringMesh.position.set(CONF_CX, 0.31, CONF_CZ); scene.add(ringMesh)
 
-      // Conf room overhead light (off by default)
-      confLight = new THREE.PointLight(0x7080ff, 0, 10)
-      confLight.position.set(CONF_CX, 4, CONF_CZ); scene.add(confLight)
+      // Hologram above table (torus rings, hidden by default)
+      hologram = new THREE.Group(); hologram.position.set(CONF_CX, 0.8, CONF_CZ); hologram.visible = false
+      for (let i = 0; i < 3; i++) {
+        const hr = new THREE.Mesh(new THREE.TorusGeometry(0.5 + i * 0.3, 0.02, 6, 32),
+          new THREE.MeshStandardMaterial({ color: 0x6688ff, emissive: 0x4466ff, emissiveIntensity: 1.5, transparent: true, opacity: 0.7 }))
+        hr.rotation.x = Math.PI / 2 + i * 0.4; hologram.add(hr)
+      }
+      scene.add(hologram)
 
-      // ── Plants ────────────────────────────────────────────────
-      const plantSpots: [number, number][] = [[0.5, 0.5], [15.5, 0.5], [0.5, 12.5]]
-      plantSpots.forEach(([px, pz]) => {
-        const pot = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.18, 0.14, 0.28, 8),
-          new THREE.MeshStandardMaterial({ color: 0x7c4a2a, roughness: 1 })
-        )
-        pot.position.set(px, 0.14, pz); pot.castShadow = true; scene.add(pot)
-        const pl = new THREE.Mesh(
-          new THREE.SphereGeometry(0.28, 8, 6),
-          new THREE.MeshStandardMaterial({ color: 0x16572e, roughness: 1 })
-        )
-        pl.position.set(px, 0.5, pz); scene.add(pl)
+      // Overhead conf light
+      confLight = new THREE.PointLight(0x8899ff, 0, 12); confLight.position.set(CONF_CX, 4, CONF_CZ)
+      scene.add(confLight)
+
+      // Wall-mounted screens inside conf room
+      for (let i = 0; i < 2; i++) {
+        const scrPanel = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 0.05),
+          new THREE.MeshStandardMaterial({ color: 0x0a1428, emissive: 0x0a2060, emissiveIntensity: 0.3 }))
+        scrPanel.position.set(CONF_CX, 1.0, CONF_Z + 0.1 + i * (CONF_D - 0.2))
+        scene.add(scrPanel)
+      }
+
+      // Chairs around table
+      CONF_SEATS.forEach(seat => {
+        const ch = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 8),
+          new THREE.MeshStandardMaterial({ color: 0x0f1e32, roughness: 0.95 }))
+        ch.position.set(seat.x, 0.23, seat.z); scene.add(ch)
       })
 
-      // ── Characters ────────────────────────────────────────────
+      // ── Characters ─────────────────────────────────────────
       charsRef.current.forEach(c => {
         const ag = initAgents.find(a => a.id === c.id)
-        const col = COL[c.name] ?? COL.Theo
+        const col = COL[c.name] ?? DEFAULT_COL
+        const grp = new THREE.Group(); grp.position.set(c.x, 0, c.z)
 
-        const grp = new THREE.Group()
-        grp.position.set(c.x, 0, c.z)
-
-        // Body cylinder
-        const body = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.17, 0.14, 0.48, 12),
+        // Body
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.15, 0.5, 12),
           new THREE.MeshStandardMaterial({
-            color: col.num, roughness: 0.45, metalness: 0.1,
-            emissive: col.num, emissiveIntensity: ag?.isOnline ? 0.2 : 0,
-          })
-        )
-        body.position.y = 0.34; body.castShadow = true; grp.add(body)
+            color: col.num, roughness: 0.4, metalness: 0.05,
+            emissive: col.num, emissiveIntensity: ag?.isOnline ? 0.25 : 0,
+          }))
+        body.position.y = 0.35; body.castShadow = true; grp.add(body)
 
-        // Neck
-        const neck = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.07, 0.09, 0.1, 8),
-          new THREE.MeshStandardMaterial({ color: 0xe8c9a8, roughness: 0.7 })
-        )
-        neck.position.y = 0.63; grp.add(neck)
+        // Head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 10),
+          new THREE.MeshStandardMaterial({ color: 0xf0d5b8, roughness: 0.65 }))
+        head.position.y = 0.84; head.castShadow = true; grp.add(head)
 
-        // Head sphere
-        const head = new THREE.Mesh(
-          new THREE.SphereGeometry(0.21, 16, 12),
-          new THREE.MeshStandardMaterial({ color: 0xf0d5b8, roughness: 0.65 })
-        )
-        head.position.y = 0.85; head.castShadow = true; grp.add(head)
-
-        // Hair dome
+        // Hair
         const hair = new THREE.Mesh(
-          new THREE.SphereGeometry(0.22, 16, 8, 0, Math.PI * 2, 0, 1.0),
-          new THREE.MeshStandardMaterial({ color: col.num, roughness: 0.8 })
-        )
-        hair.position.y = 0.87; grp.add(hair)
+          new THREE.SphereGeometry(0.23, 14, 8, 0, Math.PI * 2, 0, 1.05),
+          new THREE.MeshStandardMaterial({ color: col.num, roughness: 0.85 }))
+        hair.position.y = 0.85; grp.add(hair)
 
         // Eyes
-        for (const ex of [-0.07, 0.07]) {
-          const eye = new THREE.Mesh(
-            new THREE.SphereGeometry(0.035, 6, 6),
-            new THREE.MeshStandardMaterial({ color: 0x111111 })
-          )
-          eye.position.set(ex, 0.87, 0.185); grp.add(eye)
+        for (const ex of [-0.08, 0.08]) {
+          const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 5),
+            new THREE.MeshStandardMaterial({ color: 0x0a0a0a }))
+          eye.position.set(ex, 0.86, 0.19); grp.add(eye)
         }
 
-        // Agent glow light
-        const lite = new THREE.PointLight(col.num, ag?.isOnline ? 1.8 : 0, 2.8)
+        // Glow light
+        const lite = new THREE.PointLight(col.num, ag?.isOnline ? 2.0 : 0, 3.0)
         lite.position.y = 0.4; grp.add(lite)
 
         scene.add(grp)
 
-        // HTML name label
+        // HTML label
         const lbl = document.createElement('div')
-        lbl.style.cssText = `
-          position:absolute; pointer-events:none; transform:translate(-50%,0);
-          background:rgba(6,10,20,0.92); border:1px solid ${col.hex}55;
-          color:${ag?.isOnline ? col.hex : '#334466'};
-          font:600 9px/1.4 ui-monospace,monospace; padding:2px 7px;
-          border-radius:6px; white-space:nowrap;
-          opacity:${ag?.isOnline ? '1' : '0.3'};
-          box-shadow:${ag?.isOnline ? `0 0 8px ${col.hex}44` : 'none'};
-        `
+        lbl.style.cssText = `position:absolute;pointer-events:none;transform:translate(-50%,0);
+          background:rgba(4,8,18,0.93);border:1px solid ${col.hex}66;
+          color:${ag?.isOnline ? col.hex : '#2a3860'};
+          font:600 9px/1.4 ui-monospace,monospace;padding:2px 7px;border-radius:6px;
+          white-space:nowrap;box-shadow:${ag?.isOnline ? `0 0 8px ${col.hex}55` : 'none'};
+          opacity:${ag?.isOnline ? '1' : '0.25'}`
         lbl.textContent = `${c.emoji} ${c.name}`
         labelsRef.current?.appendChild(lbl)
 
-        charMeshes.set(c.id, { grp, body, head, lite, lbl })
+        charMeshes.set(c.id, { grp, body, lite, lbl })
       })
 
-      // ── Tick loop ─────────────────────────────────────────────
+      // ── Plants ─────────────────────────────────────────────
+      const plantSpots: [number, number][] = [
+        [CONF_X - 0.8, CONF_Z - 0.8],
+        [CONF_X - 0.8, CONF_Z + CONF_D + 0.8],
+        [maxX + 1.5, 0.8],
+        [maxX + 1.5, maxZ],
+      ]
+      plantSpots.forEach(([px, pz]) => {
+        const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.3, 8),
+          new THREE.MeshStandardMaterial({ color: 0x6b3a1f, roughness: 1 }))
+        pot.position.set(px, 0.15, pz); pot.castShadow = true; scene.add(pot)
+        const pl = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6),
+          new THREE.MeshStandardMaterial({ color: 0x1a5e30, roughness: 1 }))
+        pl.position.set(px, 0.52, pz); scene.add(pl)
+      })
+
+      // ── Tick ───────────────────────────────────────────────
       const tick = () => {
         rafId = requestAnimationFrame(tick)
         const n = ++tickRef.current
         const chars = charsRef.current
         const meet = meetRef.current
 
-        // Sync online status from latest agents
-        const curAgents = agentsRef.current
+        // Sync status
+        const cur = agentsRef.current
         chars.forEach(c => {
-          const a = curAgents.find(x => x.id === c.id)
+          const a = cur.find(x => x.id === c.id)
           if (a) { c.online = a.isOnline; c.available = a.isAvailable; c.lastAction = a.lastAction }
         })
 
-        // Meeting trigger
-        const manual = triggerRef.current
-        if (manual) triggerRef.current = false
-
-        if (!meet.active && (manual || n % 1200 === 0)) {
-          const theo = chars.find(c => c.name === 'Theo' && (c.online || manual)) ?? chars[0]
+        const manual = triggerRef.current; if (manual) triggerRef.current = false
+        if (!meet.active && (manual || n % 1400 === 0)) {
+          const theo = chars.find(c => c.name === 'Theo' && (c.online || manual)) ?? chars.find(c => c.online) ?? chars[0]
           if (theo) {
             const avail = chars.filter(c => c.id !== theo.id && c.available && c.state === 'at_desk')
-            const cnt = Math.min(1 + Math.floor(Math.random() * 3), avail.length)
+            const cnt = Math.min(1 + Math.floor(Math.random() * 4), avail.length)
             const invited = avail.sort(() => Math.random() - 0.5).slice(0, cnt)
             const all = [theo, ...invited]
             meet.active = true; meet.participants = all.map(c => c.id)
-            meet.timer = 600 + Math.floor(Math.random() * 300)
-            meet.announce = `📢 Theo → ${invited.length ? invited.map(c => c.name).join(', ') : 'solo'} meeting`
+            meet.timer = 600 + Math.floor(Math.random() * 400)
+            meet.announce = `📢 ${theo.name} → ${invited.length ? invited.map(c => c.name).join(', ') : 'solo'}`
             meet.announceTick = 240
             setAnnounce(meet.announce); setConfOn(true); onMeetingChange?.(true)
-            if (confLight) confLight.intensity = 3.5
+            if (confLight) confLight.intensity = 4
+            if (hologram) hologram.visible = true
             all.forEach((c, i) => {
               c.state = 'going_to_meeting'; c.seatIdx = i % CONF_SEATS.length
               c.tx = CONF_ENTRY_X; c.tz = c.deskZ; c.timer = 999
@@ -427,99 +445,84 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         if (meet.active) {
           meet.timer--
           if (meet.announceTick > 0 && --meet.announceTick === 0) { meet.announce = ''; setAnnounce('') }
+          if (hologram) { hologram.children.forEach((h: any, i: number) => { h.rotation.z = n * 0.02 + i * 1.2 }) }
           if (meet.timer <= 0) {
             meet.participants.forEach(id => {
               const c = chars.find(x => x.id === id)
-              if (c) { c.state = 'to_desk'; c.tx = c.deskX; c.tz = c.deskZ; c.timer = 400; c.bubble = '✅ Done!'; c.bubbleTimer = 90 }
+              if (c) { c.state = 'to_desk'; c.tx = c.deskX; c.tz = c.deskZ; c.timer = 500; c.bubble = '✅ Done!'; c.bubbleTimer = 90 }
             })
             meet.active = false; meet.participants = []
             setConfOn(false); onMeetingChange?.(false)
             if (confLight) confLight.intensity = 0
+            if (hologram) hologram.visible = false
           }
         }
 
-        // Animate conf ring
-        if (ringMesh) {
-          ringMesh.material.emissiveIntensity = meet.active ? (0.4 + Math.sin(n * 0.05) * 0.3) : 0.15
-        }
+        if (ringMesh) ringMesh.material.emissiveIntensity = meet.active ? 0.5 + Math.sin(n * 0.06) * 0.4 : 0.2
 
         chars.forEach(c => {
           const m = charMeshes.get(c.id)
-
           if (c.state === 'in_meeting') {
             c.phase += 0.025
             const seat = CONF_SEATS[c.seatIdx] ?? CONF_SEATS[0]
-            c.x = seat.x; c.z = seat.z + Math.sin(c.phase) * 0.015
+            c.x = seat.x; c.z = seat.z + Math.sin(c.phase) * 0.012
           } else {
             c.timer--
             if (c.timer <= 0) {
               if (c.state === 'at_desk' && !meet.participants.includes(c.id)) {
-                if (c.online && Math.random() < 0.3) {
-                  const L = DESK_LAYOUT[c.name]; const row = L?.row ?? 0
-                  c.tx = 1 + Math.random() * 13.5
-                  c.tz = ROW_Z[row] + (Math.random() - 0.5) * 1.2
-                  c.state = 'wandering'; c.timer = 80 + Math.random() * 120
-                } else { c.timer = 150 + Math.random() * 200 }
+                if (c.online && Math.random() < 0.28) {
+                  const L = deskMap[c.name]; const row = L?.row ?? 0
+                  const rz = 1.8 + row * 4.5
+                  c.tx = CONF_W + 3 + Math.random() * (maxX - CONF_W - 1)
+                  c.tz = rz + (Math.random() - 0.5) * 1.2
+                  c.state = 'wandering'; c.timer = 90 + Math.random() * 130
+                } else { c.timer = 160 + Math.random() * 220 }
               } else if (c.state === 'wandering') {
-                c.tx = c.deskX; c.tz = c.deskZ; c.state = 'to_desk'; c.timer = 400
-              } else if (c.state === 'to_desk') { c.timer = 400 }
+                c.tx = c.deskX; c.tz = c.deskZ; c.state = 'to_desk'; c.timer = 500
+              } else if (c.state === 'to_desk') { c.timer = 500 }
               if (c.online && c.lastAction && Math.random() < 0.07) {
-                c.bubble = c.lastAction.slice(0, 52); c.bubbleTimer = 170
+                c.bubble = c.lastAction.slice(0, 52); c.bubbleTimer = 180
               }
             }
-
-            // Arrival checks
-            if (c.state === 'to_desk' && Math.abs(c.x - c.deskX) < 0.08 && Math.abs(c.z - c.deskZ) < 0.08) {
-              c.state = 'at_desk'; c.timer = 150 + Math.random() * 250; c.x = c.deskX; c.z = c.deskZ
+            if (c.state === 'to_desk' && Math.abs(c.x - c.deskX) < 0.1 && Math.abs(c.z - c.deskZ) < 0.1) {
+              c.state = 'at_desk'; c.timer = 160 + Math.random() * 260; c.x = c.deskX; c.z = c.deskZ
             }
-            if (c.state === 'going_to_meeting' && Math.abs(c.x - CONF_ENTRY_X) < 0.12) {
+            if (c.state === 'going_to_meeting' && Math.abs(c.x - CONF_ENTRY_X) < 0.15) {
               const seat = CONF_SEATS[c.seatIdx] ?? CONF_SEATS[0]
               c.state = 'in_meeting'; c.x = seat.x; c.z = seat.z; c.tx = seat.x; c.tz = seat.z
             }
-
-            // Movement
             const dx = c.tx - c.x, dz = c.tz - c.z
             const dist = Math.sqrt(dx * dx + dz * dz)
-            const spd = (c.online || c.state === 'going_to_meeting' || c.state === 'to_desk') ? 0.042 : 0
+            const spd = (c.online || c.state === 'going_to_meeting' || c.state === 'to_desk') ? 0.044 : 0
             if (dist > 0.04 && spd > 0) {
               c.x += dx / dist * spd; c.z += dz / dist * spd
               c.facing = Math.atan2(dx, dz); c.moving = true; c.phase += 0.14
             } else {
               c.moving = false
-              if (c.online || c.state === 'in_meeting') c.phase += 0.04
+              if (c.online) c.phase += 0.04
             }
           }
-
           if (c.bubbleTimer > 0) c.bubbleTimer--
 
-          // Update Three.js mesh
           if (m) {
             m.grp.position.x = c.x; m.grp.position.z = c.z
             m.grp.rotation.y = c.facing
-            if (c.moving) {
-              m.grp.position.y = Math.abs(Math.sin(c.phase)) * 0.09
-              m.body.rotation.z = Math.sin(c.phase) * 0.12
-            } else {
-              m.grp.position.y = Math.sin(c.phase * 0.4) * 0.022
-              m.body.rotation.z *= 0.85
-            }
-            // Fade light for online state
-            m.lite.intensity += ((c.online ? 1.8 : 0) - m.lite.intensity) * 0.05
+            m.grp.position.y = c.moving ? Math.abs(Math.sin(c.phase)) * 0.1 : Math.sin(c.phase * 0.35) * 0.024
+            if (c.moving) m.body.rotation.z = Math.sin(c.phase) * 0.12
+            else m.body.rotation.z *= 0.88
+            m.lite.intensity += ((c.online ? 2.0 : 0) - m.lite.intensity) * 0.05
 
-            // Project to screen for label
-            const v = new THREE.Vector3(c.x, 1.25, c.z).project(camera)
-            const lx = (v.x * 0.5 + 0.5) * W
-            const ly = (-v.y * 0.5 + 0.5) * H
-            m.lbl.style.left = lx + 'px'
-            m.lbl.style.top = (ly - 4) + 'px'
+            // Project label
+            const v = new THREE.Vector3(c.x, 1.28, c.z).project(camera)
+            m.lbl.style.left = ((v.x * 0.5 + 0.5) * W) + 'px'
+            m.lbl.style.top = ((-v.y * 0.5 + 0.5) * H - 5) + 'px'
             m.lbl.style.display = v.z < 1 ? 'block' : 'none'
           }
         })
 
-        // Random activity bubble
-        if (n % 280 === 0) {
+        if (n % 300 === 0) {
           const pool = chars.filter(c => c.online && c.lastAction && c.state !== 'in_meeting')
-          if (pool.length) { const c = pool[Math.floor(Math.random() * pool.length)]; c.bubble = c.lastAction!.slice(0, 52); c.bubbleTimer = 190 }
+          if (pool.length) { const c = pool[Math.floor(Math.random() * pool.length)]; c.bubble = c.lastAction!.slice(0, 52); c.bubbleTimer = 200 }
         }
 
         renderer.render(scene, camera)
@@ -528,89 +531,71 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
     }
 
     init()
-
     return () => {
       cancelAnimationFrame(rafId)
       renderer?.dispose()
-      if (mountRef.current && renderer?.domElement.parentNode === mountRef.current) {
-        mountRef.current.removeChild(renderer.domElement)
-      }
+      if (mountRef.current && renderer?.domElement?.parentNode === mountRef.current) mountRef.current.removeChild(renderer.domElement)
       charMeshes.forEach(({ lbl }) => lbl.remove())
       charMeshes.clear()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-0" ref={containerRef}>
       {announce && (
         <div className="flex justify-center mb-3">
           <div className="px-5 py-2.5 rounded-full text-sm font-semibold text-white"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 24px rgba(99,102,241,0.5)' }}>
+            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', boxShadow: '0 0 28px rgba(99,102,241,0.55)' }}>
             {announce}
           </div>
         </div>
       )}
 
-      <div className="relative rounded-2xl overflow-hidden border border-zinc-800/60"
-        style={{ width: 810, height: 480, boxShadow: '0 0 60px rgba(10,20,60,0.8)' }}>
-        <div ref={mountRef} className="w-full h-full" />
+      <div className="relative rounded-2xl overflow-hidden border border-zinc-800/50 w-full"
+        style={{ boxShadow: '0 0 80px rgba(10,20,60,0.9), inset 0 0 0 1px rgba(60,80,160,0.1)' }}>
+        <div ref={mountRef} className="w-full" style={{ lineHeight: 0 }} />
         <div ref={labelsRef} className="absolute inset-0 pointer-events-none" />
 
-        {/* Conf room badge */}
         <div className="absolute top-3 right-3 pointer-events-none">
           <div className="px-3 py-1.5 rounded-xl text-xs font-bold tracking-wider" style={{
-            background: confOn ? 'rgba(99,102,241,0.18)' : 'rgba(10,18,35,0.85)',
-            border: `1px solid ${confOn ? 'rgba(99,102,241,0.55)' : 'rgba(25,40,70,0.6)'}`,
-            color: confOn ? '#a5b4fc' : '#2a3a60',
-            boxShadow: confOn ? '0 0 16px rgba(99,102,241,0.3)' : 'none',
+            background: confOn ? 'rgba(99,102,241,0.2)' : 'rgba(8,14,28,0.88)',
+            border: `1px solid ${confOn ? 'rgba(99,102,241,0.6)' : 'rgba(30,50,90,0.5)'}`,
+            color: confOn ? '#a5b4fc' : '#233058',
+            boxShadow: confOn ? '0 0 18px rgba(99,102,241,0.35)' : 'none',
           }}>
             {confOn ? '● MEETING ACTIVE' : '○ CONFERENCE'}
           </div>
         </div>
 
-        {/* Speech bubbles (positioned over 3D canvas) */}
-        {charsRef.current.filter(c => c.bubble && c.bubbleTimer > 0).map(c => {
-          // We'll render these via a React state update — but we need positions.
-          // For now they render via the label system above; skip here to avoid stale state.
-          return null
-        })}
-
-        {/* Agent info panel */}
         {selected && (() => {
           const a = selected; const col = COL[a.name]?.hex ?? '#6366f1'
           return (
             <div className="absolute bottom-3 left-3 rounded-2xl p-4 w-56" style={{
-              background: 'rgba(6,10,20,0.97)', border: `1px solid ${col}44`,
-              backdropFilter: 'blur(20px)', boxShadow: `0 0 30px ${col}20, 0 8px 32px rgba(0,0,0,0.6)`,
-              zIndex: 30,
+              background: 'rgba(5,9,20,0.97)', border: `1px solid ${col}44`,
+              backdropFilter: 'blur(20px)', boxShadow: `0 0 30px ${col}20, 0 8px 40px rgba(0,0,0,0.7)`, zIndex: 30,
             }}>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{
-                  background: `radial-gradient(135deg at 30% 30%, ${col}cc, ${col}44)`,
-                  border: `2px solid ${col}`,
-                  boxShadow: `0 0 12px ${col}55`,
-                }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+                  style={{ background: `radial-gradient(135deg at 30% 30%, ${col}cc, ${col}44)`, border: `2px solid ${col}`, boxShadow: `0 0 14px ${col}55` }}>
                   {a.avatar_emoji}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-white font-bold text-sm leading-none">{a.name}</p>
                   <p className="text-zinc-500 text-xs mt-0.5 truncate">{a.role}</p>
                 </div>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: `${col}22`, color: col }}>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{ background: `${col}22`, color: col }}>
                   {a.isOnline ? 'Online' : a.isAvailable ? 'Recent' : 'Idle'}
                 </span>
               </div>
               {a.lastAction && <p className="text-zinc-400 text-xs leading-relaxed line-clamp-3">{a.lastAction}</p>}
-              {a.minutesAgo !== null && (
-                <p className="text-zinc-700 text-xs mt-2">{a.minutesAgo < 1 ? 'Active just now' : `${a.minutesAgo}m ago`}</p>
-              )}
+              {a.minutesAgo !== null && <p className="text-zinc-700 text-xs mt-2">{a.minutesAgo < 1 ? 'Active just now' : `${a.minutesAgo}m ago`}</p>}
               <button onClick={() => setSelected(null)} className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 transition-all text-xs">✕</button>
             </div>
           )
         })()}
       </div>
 
-      {/* Agent pills */}
       <div className="flex flex-wrap gap-2 mt-3">
         {agents.map(a => {
           const col = COL[a.name]?.hex ?? '#6366f1'
@@ -618,13 +603,13 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
             <button key={a.id} onClick={() => setSelected(s => s?.id === a.id ? null : a)}
               className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all"
               style={{
-                background: selected?.id === a.id ? `${col}20` : 'rgba(8,12,22,0.85)',
-                borderColor: `${col}${a.isOnline ? '55' : '1a'}`,
-                color: a.isOnline ? col : '#2a3a55',
+                background: selected?.id === a.id ? `${col}1a` : 'rgba(6,10,20,0.9)',
+                borderColor: `${col}${a.isOnline ? '55' : '18'}`,
+                color: a.isOnline ? col : '#1e2e50',
                 boxShadow: a.isOnline && selected?.id === a.id ? `0 0 10px ${col}33` : 'none',
               }}>
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ background: a.isOnline ? col : '#1a2540', boxShadow: a.isOnline ? `0 0 5px ${col}` : 'none' }} />
+                style={{ background: a.isOnline ? col : '#0f1e38', boxShadow: a.isOnline ? `0 0 5px ${col}` : 'none' }} />
               {a.avatar_emoji} {a.name}
             </button>
           )
