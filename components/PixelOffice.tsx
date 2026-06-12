@@ -46,8 +46,8 @@ function buildLayout(agents: AgentStatus[]) {
   agents.forEach((a, i) => {
     const col = i % COLS
     const row = Math.floor(i / COLS)
-    const x = CONF_W + 1.8 + col * 2.4
-    const z = 1.0 + row * 2.8
+    const x = CONF_W + 2.2 + col * 3.2
+    const z = 1.2 + row * 3.8
     map[a.name] = { col, row, x, z }
   })
   return map
