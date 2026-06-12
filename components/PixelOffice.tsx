@@ -183,8 +183,8 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
             } else { c.stateTimer = 150 + Math.random() * 200 }
           } else if (c.state === 'wandering') {
             c.tx = c.deskX; c.ty = c.deskY; c.state = 'to_desk'; c.stateTimer = 120
-          } else if (c.state === 'to_desk' && Math.abs(c.x - c.deskX) < 4) {
-            c.state = 'at_desk'; c.stateTimer = 150 + Math.random() * 250
+          } else if (c.state === 'to_desk') {
+            c.stateTimer = 300 // keep retrying until they arrive
           }
           if (c.isOnline && c.lastAction && Math.random() < 0.08) {
             c.bubble = c.lastAction.slice(0, 55); c.bubbleTimer = 160
@@ -192,6 +192,10 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         }
 
         // Arrived at conf door
+        if (c.state === 'to_desk' && Math.abs(c.x - c.deskX) < 4 && Math.abs(c.y - c.deskY) < 4) {
+          c.state = 'at_desk'; c.stateTimer = 150 + Math.random() * 250
+        }
+
         if (c.state === 'going_to_meeting' && Math.abs(c.x - CONF_ENTRY_X) < 6) {
           c.state = 'in_meeting'
           const seat = CONF_SEATS[c.seatIndex] ?? CONF_SEATS[0]
@@ -202,7 +206,7 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
         // Move
         const dx = c.tx - c.x, dy = c.ty - c.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        const speed = (c.isOnline || c.state === 'going_to_meeting') ? 1.4 : 0
+        const speed = (c.isOnline || c.state === 'going_to_meeting' || c.state === 'to_desk') ? 1.4 : 0
         if (dist > 2 && speed > 0) {
           c.x += (dx / dist) * speed; c.y += (dy / dist) * speed
           c.facing = dx >= 0 ? 1 : -1; c.moving = true
