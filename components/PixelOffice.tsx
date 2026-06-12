@@ -736,9 +736,6 @@ export default function PixelOffice({ agents, onCallMeeting, onMeetingChange }: 
       const sortedChars = [...chars].sort((a, b) => (a.x + a.z) - (b.x + b.z))
       sortedChars.forEach(c => drawCharacter(c, t))
 
-      // DEBUG: show char count
-      ctx.save(); ctx.font = 'bold 14px monospace'; ctx.fillStyle = '#fff'; ctx.fillText('chars: ' + chars.length + ' agents: ' + agentsRef.current.length, 10, 20); ctx.restore()
-
       // 4. Scanline overlay for CRT effect
       ctx.save()
       ctx.globalAlpha = 0.025
