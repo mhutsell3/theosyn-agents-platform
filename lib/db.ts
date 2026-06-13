@@ -13,4 +13,5 @@ const db = process.env.DATABASE_URL
       max: 5,
     })
 
+export { db }
 export default db
