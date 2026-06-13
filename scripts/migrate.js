@@ -71,15 +71,15 @@ async function migrate() {
       )
     `
 
+    // Upgrade columns first (must exist before indexes are created)
+    await db`ALTER TABLE agents ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES organizations(id) ON DELETE CASCADE`
+    await db`ALTER TABLE agents ADD COLUMN IF NOT EXISTS system_enabled boolean NOT NULL DEFAULT true`
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_system_admin boolean NOT NULL DEFAULT false`
+
     await db`CREATE INDEX IF NOT EXISTS heartbeats_agent_id_idx ON heartbeats(agent_id)`
     await db`CREATE INDEX IF NOT EXISTS heartbeats_created_at_idx ON heartbeats(created_at DESC)`
     await db`CREATE INDEX IF NOT EXISTS agents_org_id_idx ON agents(org_id)`
     await db`CREATE INDEX IF NOT EXISTS org_settings_org_id_idx ON org_settings(org_id)`
-
-    // Upgrade columns for existing tables
-    await db`ALTER TABLE agents ADD COLUMN IF NOT EXISTS org_id uuid REFERENCES organizations(id) ON DELETE CASCADE`
-    await db`ALTER TABLE agents ADD COLUMN IF NOT EXISTS system_enabled boolean NOT NULL DEFAULT true`
-    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_system_admin boolean NOT NULL DEFAULT false`
 
     console.log('Migration complete')
   } finally {
