@@ -37,11 +37,11 @@ export async function getAgentStatuses(orgId: string): Promise<AgentStatus[]> {
       ollama_model: string | null; last_heartbeat: string | null
     }[],
     db`
-      SELECT DISTINCT ON (agent_id) agent_id, content, created_at
+      SELECT DISTINCT ON (h.agent_id) h.agent_id, h.content, h.created_at
       FROM heartbeats h
       JOIN agents a ON a.id = h.agent_id
       WHERE a.org_id = ${orgId} AND a.system_enabled = true
-      ORDER BY agent_id, created_at DESC
+      ORDER BY h.agent_id, h.created_at DESC
     ` as unknown as { agent_id: string; content: string; created_at: string }[],
   ])
 
