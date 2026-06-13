@@ -10,5 +10,6 @@ export default async function Home() {
   if (!session?.user?.orgId) redirect('/login')
 
   const agents = await getAgentStatuses(session.user.orgId)
-  return <AgentDashboard initialAgents={agents} orgName={session.user.orgName} isSystemAdmin={session.user.isSystemAdmin} />
+  const u = session.user as any
+  return <AgentDashboard initialAgents={agents} orgName={u.orgName} isSystemAdmin={!!u.isSystemAdmin} />
 }

@@ -7,7 +7,8 @@ export const revalidate = 0
 
 export default async function AdminPage() {
   const session = await auth()
-  if (!session?.user?.isSystemAdmin) redirect('/')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!(session?.user as any)?.isSystemAdmin) redirect('/')
 
   const agents = await getAllAgentsForAdmin()
   return (
