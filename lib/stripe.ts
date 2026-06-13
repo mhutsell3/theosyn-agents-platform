@@ -1,8 +1,12 @@
 import Stripe from 'stripe'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-05-27.dahlia',
-})
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2026-05-27.dahlia',
+  })
+}
+
+export { getStripe }
 
 export async function createPaymentLink(invoice: {
   id: string
@@ -11,6 +15,7 @@ export async function createPaymentLink(invoice: {
   description: string | null
   invoice_number: string | null
 }): Promise<string> {
+  const stripe = getStripe()
   const product = await stripe.products.create({
     name: invoice.description ?? `Invoice ${invoice.invoice_number ?? invoice.id.slice(0, 8)}`,
     metadata: { invoice_id: invoice.id },
