@@ -537,6 +537,140 @@ async function migrate() {
     await db`ALTER TABLE agents ADD COLUMN IF NOT EXISTS system_enabled boolean NOT NULL DEFAULT true`
     await db`ALTER TABLE users  ADD COLUMN IF NOT EXISTS is_system_admin boolean NOT NULL DEFAULT false`
 
+    // ── Schema patches for column name mismatches ─────────────────────────────
+
+    // clients: add updated_at, phone
+    await db`ALTER TABLE clients ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now()`
+    await db`ALTER TABLE clients ADD COLUMN IF NOT EXISTS phone text`
+
+    // projects: add updated_at, value, budget
+    await db`ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now()`
+    await db`ALTER TABLE projects ADD COLUMN IF NOT EXISTS value numeric(12,2)`
+    await db`ALTER TABLE projects ADD COLUMN IF NOT EXISTS budget numeric(12,2)`
+
+    // invoices: add paid_date
+    await db`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS paid_date date`
+
+    // scout_leads: rename email→contact_email if needed, add missing columns
+    await db`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scout_leads' AND column_name='email')
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scout_leads' AND column_name='contact_email')
+        THEN ALTER TABLE scout_leads RENAME COLUMN email TO contact_email; END IF;
+      END $$`
+    await db`ALTER TABLE scout_leads ADD COLUMN IF NOT EXISTS contact_email text`
+    await db`ALTER TABLE scout_leads ADD COLUMN IF NOT EXISTS outreach_status text NOT NULL DEFAULT 'pending'`
+    await db`ALTER TABLE scout_leads ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now()`
+    await db`ALTER TABLE scout_leads ADD COLUMN IF NOT EXISTS client_id uuid REFERENCES clients(id) ON DELETE SET NULL`
+    await db`ALTER TABLE scout_leads ADD COLUMN IF NOT EXISTS rating numeric(3,1)`
+    await db`ALTER TABLE scout_leads ADD COLUMN IF NOT EXISTS review_count int`
+    await db`ALTER TABLE scout_leads ADD COLUMN IF NOT EXISTS place_id text`
+
+    // content_posts: rename scheduled_at→scheduled_date, add url, published_date, post_time
+    await db`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='content_posts' AND column_name='scheduled_at')
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='content_posts' AND column_name='scheduled_date')
+        THEN ALTER TABLE content_posts RENAME COLUMN scheduled_at TO scheduled_date; END IF;
+      END $$`
+    await db`ALTER TABLE content_posts ADD COLUMN IF NOT EXISTS scheduled_date date`
+    await db`ALTER TABLE content_posts ADD COLUMN IF NOT EXISTS url text`
+    await db`ALTER TABLE content_posts ADD COLUMN IF NOT EXISTS published_date date`
+    await db`ALTER TABLE content_posts ADD COLUMN IF NOT EXISTS post_time text`
+
+    // content_metrics (new table)
+    await db`
+      CREATE TABLE IF NOT EXISTS content_metrics (
+        id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        month             date NOT NULL,
+        leads_generated   int DEFAULT 0,
+        email_subscribers int DEFAULT 0,
+        views             int DEFAULT 0,
+        engagements       int DEFAULT 0,
+        created_at        timestamptz DEFAULT now()
+      )`
+
+    // sage_briefs: rename title→topic if needed
+    await db`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='sage_briefs' AND column_name='title')
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='sage_briefs' AND column_name='topic')
+        THEN ALTER TABLE sage_briefs RENAME COLUMN title TO topic; END IF;
+      END $$`
+    await db`ALTER TABLE sage_briefs ADD COLUMN IF NOT EXISTS topic text`
+    await db`ALTER TABLE sage_briefs ADD COLUMN IF NOT EXISTS source text`
+
+    // piper_approvals: add lead_id, approval_type, to_email, to_name
+    await db`ALTER TABLE piper_approvals ADD COLUMN IF NOT EXISTS lead_id uuid REFERENCES scout_leads(id) ON DELETE SET NULL`
+    await db`ALTER TABLE piper_approvals ADD COLUMN IF NOT EXISTS approval_type text`
+    await db`ALTER TABLE piper_approvals ADD COLUMN IF NOT EXISTS to_email text`
+    await db`ALTER TABLE piper_approvals ADD COLUMN IF NOT EXISTS to_name text`
+
+    // contact_log: add lead_id, entry_type, created_by
+    await db`ALTER TABLE contact_log ADD COLUMN IF NOT EXISTS lead_id uuid REFERENCES scout_leads(id) ON DELETE SET NULL`
+    await db`ALTER TABLE contact_log ADD COLUMN IF NOT EXISTS entry_type text NOT NULL DEFAULT 'note'`
+    await db`ALTER TABLE contact_log ADD COLUMN IF NOT EXISTS created_by text`
+
+    // theo_sessions: add summary, thinking, actions, rounds, action_count, completed_at
+    await db`ALTER TABLE theo_sessions ADD COLUMN IF NOT EXISTS summary text`
+    await db`ALTER TABLE theo_sessions ADD COLUMN IF NOT EXISTS thinking text`
+    await db`ALTER TABLE theo_sessions ADD COLUMN IF NOT EXISTS actions jsonb DEFAULT '[]'`
+    await db`ALTER TABLE theo_sessions ADD COLUMN IF NOT EXISTS rounds int DEFAULT 0`
+    await db`ALTER TABLE theo_sessions ADD COLUMN IF NOT EXISTS action_count int DEFAULT 0`
+    await db`ALTER TABLE theo_sessions ADD COLUMN IF NOT EXISTS completed_at timestamptz`
+
+    // social_accounts: add agent_id, page_name (rename account_name→page_name if needed)
+    await db`ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS agent_id uuid REFERENCES agents(id) ON DELETE SET NULL`
+    await db`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='social_accounts' AND column_name='account_name')
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='social_accounts' AND column_name='page_name')
+        THEN ALTER TABLE social_accounts RENAME COLUMN account_name TO page_name; END IF;
+      END $$`
+    await db`ALTER TABLE social_accounts ADD COLUMN IF NOT EXISTS page_name text`
+
+    // pulse_page_settings: add scheduling/reply columns
+    await db`ALTER TABLE pulse_page_settings ADD COLUMN IF NOT EXISTS reply_tone text DEFAULT 'friendly'`
+    await db`ALTER TABLE pulse_page_settings ADD COLUMN IF NOT EXISTS auto_reply_simple boolean DEFAULT false`
+    await db`ALTER TABLE pulse_page_settings ADD COLUMN IF NOT EXISTS sign_off_name text`
+    await db`ALTER TABLE pulse_page_settings ADD COLUMN IF NOT EXISTS monitor_days int DEFAULT 7`
+    await db`ALTER TABLE pulse_page_settings ADD COLUMN IF NOT EXISTS flag_negative boolean DEFAULT true`
+    await db`ALTER TABLE pulse_page_settings ADD COLUMN IF NOT EXISTS flag_questions boolean DEFAULT true`
+    await db`ALTER TABLE pulse_page_settings ADD COLUMN IF NOT EXISTS dead_post_alert boolean DEFAULT false`
+    await db`ALTER TABLE pulse_page_settings ADD COLUMN IF NOT EXISTS spike_threshold int DEFAULT 50`
+    await db`ALTER TABLE pulse_page_settings ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now()`
+
+    // flow: clients needs ghl_contact_id
+    await db`ALTER TABLE clients ADD COLUMN IF NOT EXISTS ghl_contact_id text`
+
+    // logos tables (new)
+    await db`
+      CREATE TABLE IF NOT EXISTS logos_topics (
+        id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        title      text NOT NULL,
+        scripture  text,
+        category   text,
+        active     boolean NOT NULL DEFAULT true,
+        created_at timestamptz DEFAULT now()
+      )`
+
+    await db`
+      CREATE TABLE IF NOT EXISTS logos_guides (
+        id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        topic_id       uuid REFERENCES logos_topics(id) ON DELETE SET NULL,
+        custom_topic   text,
+        title          text,
+        scripture      text,
+        reflection     text,
+        prayer         text,
+        application    text,
+        drive_file_id  text,
+        drive_url      text,
+        status         text NOT NULL DEFAULT 'draft',
+        scheduled_for  date,
+        created_at     timestamptz DEFAULT now()
+      )`
+
     // ── Indexes ───────────────────────────────────────────────────────────────
     await db`CREATE INDEX IF NOT EXISTS heartbeats_agent_id_idx   ON heartbeats(agent_id)`
     await db`CREATE INDEX IF NOT EXISTS heartbeats_created_at_idx ON heartbeats(created_at DESC)`
