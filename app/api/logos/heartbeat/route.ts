@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { isAgentEnabled } from '@/lib/agent-settings'
 import { generateGuide, uploadGuideToDrive } from '@/lib/logos'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 
 // Called by cron on Mon/Wed/Fri/Sun
 export async function POST() {
