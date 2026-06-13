@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { sendViaGmail } from '@/lib/scout'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
